@@ -1,30 +1,30 @@
-# 원격 서버 환경
-import sys
-selected_model = sys.argv[1]
-use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
-use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-input_file_path='/root/jiyeong/Dataset/ff++/train/*'
-input_file_path2='/root/jiyeong/Dataset/DFDC/train/*'
-
-
-meta_data_path='/root/jiyeong/Dataset'
-checkpoint_path='/root/jiyeong/model/checkpoints'
-checkpoint_name=sys.argv[4] # 체크포인트 이름
-frames=100
-num_epochs=int(sys.argv[5]) # 에폭 횟수
-
-# 로컬 환경
+# # 원격 서버 환경
 # import sys
 # selected_model = sys.argv[1]
 # use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
 # use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-# input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/train/*'
-# input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/train/*'
-# checkpoint_name=sys.argv[4]
-# meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
-# checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+# input_file_path='/root/jiyeong/Dataset/ff++/train/*'
+# input_file_path2='/root/jiyeong/Dataset/DFDC/train/*'
+
+
+# meta_data_path='/root/jiyeong/Dataset'
+# checkpoint_path='/root/jiyeong/model/checkpoints'
+# checkpoint_name=sys.argv[4] # 체크포인트 이름
 # frames=100
 # num_epochs=int(sys.argv[5]) # 에폭 횟수
+
+#로컬 환경
+import sys
+selected_model = sys.argv[1]
+use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
+use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
+input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/train/*'
+input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/train/*'
+checkpoint_name=sys.argv[4]
+meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
+checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+frames=100
+num_epochs=int(sys.argv[5]) # 에폭 횟수
 
 
 print("Check parameter")
@@ -272,13 +272,13 @@ train_data = video_dataset(train_videos,labels,sequence_length = 10,transform = 
 #print(train_data)
 val_data = video_dataset(valid_videos,labels,sequence_length = 10,transform = train_transforms)
 
-if device=="cuda":
-  train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 4)
-  valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 4)
-else:
+# if device=="cuda":
+#   train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 4)
+#   valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 4)
+# else:
 # cpu사용하기 때문에 병렬처리 뻄
-  train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 0)  # 여기서 batch size 조정 (한번에 몇개의 데이터를 묶어서 학습할지, batch개수=데이터 수/batch size)
-  valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 0)
+train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 0)  # 여기서 batch size 조정 (한번에 몇개의 데이터를 묶어서 학습할지, batch개수=데이터 수/batch size)
+valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 0)
 image,label = train_data[0]
 # im_plot(image[0,:,:,:])
 

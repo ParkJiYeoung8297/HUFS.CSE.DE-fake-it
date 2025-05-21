@@ -1,26 +1,26 @@
-# 원격 서버
-import sys
-selected_model = sys.argv[1]
-use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
-use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-test_input_file_path='/root/jiyeong/Dataset/ff++/val/*'
-test_input_file_path2='/root/jiyeong/Dataset/DFDC/val/*'
-checkpoint_path='/root/jiyeong/model/checkpoints'
-checkpoint_name=sys.argv[4]
-base_path = '/root/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
-frames=100
-
-# 로컬
+# # 원격 서버
 # import sys
 # selected_model = sys.argv[1]
 # use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
 # use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-# test_input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/val/*'
-# test_input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/val/*'
-# checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+# test_input_file_path='/root/jiyeong/Dataset/ff++/val/*'
+# test_input_file_path2='/root/jiyeong/Dataset/DFDC/val/*'
+# checkpoint_path='/root/jiyeong/model/checkpoints'
 # checkpoint_name=sys.argv[4]
 # base_path = '/root/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
 # frames=100
+
+# 로컬
+import sys
+selected_model = sys.argv[1]
+use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
+use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
+test_input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/val/*'
+test_input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/val/*'
+checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+checkpoint_name=sys.argv[4]
+base_path = '/root/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
+frames=100
 
 
 print("Check parameter")
