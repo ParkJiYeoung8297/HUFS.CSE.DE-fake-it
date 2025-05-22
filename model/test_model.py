@@ -1,27 +1,31 @@
-# # 원격 서버
-# import sys
-# selected_model = sys.argv[1]
-# use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
-# use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-# test_input_file_path='/root/jiyeong/Dataset/ff++/val/*'
-# test_input_file_path2='/root/jiyeong/Dataset/DFDC/val/*'
-# checkpoint_path='/root/jiyeong/model/checkpoints'
-# checkpoint_name=sys.argv[4]
-# base_path = '/root/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
-# frames=100
-
-# 로컬
+# 원격 서버
 import sys
 selected_model = sys.argv[1]
 use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
 use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-test_input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/val/*'
-test_input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/val/*'
-checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+test_input_file_path='/root/jiyeong/Dataset/ff++/val/*'
+test_input_file_path2='/root/jiyeong/Dataset/DFDC/val/*'
+checkpoint_path='/root/jiyeong/model/checkpoints'
 checkpoint_name=sys.argv[4]
+meta_data_path='/root/jiyeong/Dataset'
 base_path = '/root/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
 frames=100
 
+
+# # 로컬
+# import sys
+# selected_model = sys.argv[1]
+# use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
+# use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
+# test_input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/val/*'
+# test_input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/val/*'
+# checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+# checkpoint_name=sys.argv[4]
+# meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
+# base_path = '/Users/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
+# frames=100
+
+sys.stdout.reconfigure(line_buffering=True)  # 모든 print문에 flush=true 설정 반영
 
 print("Check parameter")
 print(f"ff++: {'use' if use_input1 == 1 else 'not use'}")
@@ -152,39 +156,63 @@ import pandas as pd
 import glob
 import random
 
+# 원격서버에서 시간 줄이기 위해서 엑셀에서 파일 이름 읽어오는걸로 대체
+# if use_input1==1 and use_input2==1:
+#     new_video_files =  glob.glob(f'{test_input_file_path}/*.mp4')   # 경로 변경
+#     data_list.append(test_input_file_path)
+#     new_video_files += glob.glob(f'{test_input_file_path2}/*.mp4') 
+#     data_list.append(test_input_file_path2)
+# elif use_input1==1:
+#     new_video_files =  glob.glob(f'{test_input_file_path}/*.mp4')   # 경로 변경
+#     data_list.append(test_input_file_path)
+# elif use_input2==1:
+#   new_video_files = glob.glob(f'{test_input_file_path2}/*.mp4') 
+#   data_list.append(test_input_file_path2)
+
+
+
+# 엑셀 파일에서 데이터 읽기
+df_name= pd.read_excel(f'{meta_data_path}/global_meta_data.xlsx')
+
 if use_input1==1 and use_input2==1:
-    new_video_files =  glob.glob(f'{test_input_file_path}/*.mp4')   # 경로 변경
-    data_list.append(test_input_file_path)
-    new_video_files += glob.glob(f'{test_input_file_path2}/*.mp4') 
-    data_list.append(test_input_file_path2)
-elif use_input1==1:
-    new_video_files =  glob.glob(f'{test_input_file_path}/*.mp4')   # 경로 변경
-    data_list.append(test_input_file_path)
-elif use_input2==1:
-  new_video_files = glob.glob(f'{test_input_file_path2}/*.mp4') 
+  video_files_from_excel= df_name[df_name['split'] == 'val']['folder_path'].tolist()
+  new_video_files = [base_path+'/'+file for file in video_files_from_excel]
+  data_list.append(test_input_file_path)
   data_list.append(test_input_file_path2)
+elif use_input1==1:
+  video_files_from_excel= df_name[(df_name['split'] == 'val') & (df_name['dataset'] == 'ff++')]['folder_path'].tolist()
+  new_video_files = [base_path+'/'+file for file in video_files_from_excel]
+  data_list.append(test_input_file_path)
+elif use_input2==1:
+  # video_files = glob.glob(f'{input_file_path2}/*.mp4') 
+  video_files_from_excel= df_name[(df_name['split'] == 'val') & (df_name['dataset'] == 'dfdc')]['folder_path'].tolist()
+  new_video_files = [base_path+'/'+file for file in video_files_from_excel]
+  data_list.append(test_input_file_path2)
+
+
+
 # new_video_files += glob.glob(f'{test_output_file_path}/*.mp4')
 # video_files += glob.glob('/content/drive/My Drive/DFDC_FAKE_Face_only_data/*.mp4')
 # video_files += glob.glob('/content/drive/My Drive/DFDC_REAL_Face_only_data/*.mp4')
 random.shuffle(new_video_files)
 random.shuffle(new_video_files)
 
-frame_count = []
-short_frame=[]
+# frame_count = []
+# short_frame=[]
 
-for video_file in reversed(new_video_files): # 이거 앞에서 부터 하면 remove로 인해 frame_count랑 video_files 길이가 달라짐, 그래서 reversed 추가하여 뒤에서 부터 탐색!!
-  cap = cv2.VideoCapture(video_file)
-  if(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))<frames):  # frames 변수 위에서 조정
-    new_video_files.remove(video_file)
-    short_frame.append(video_file)
-    continue
+# for video_file in reversed(new_video_files): # 이거 앞에서 부터 하면 remove로 인해 frame_count랑 video_files 길이가 달라짐, 그래서 reversed 추가하여 뒤에서 부터 탐색!!
+#   cap = cv2.VideoCapture(video_file)
+#   if(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))<frames):  # frames 변수 위에서 조정
+#     new_video_files.remove(video_file)
+#     short_frame.append(video_file)
+#     continue
 
-  frame_count.append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+#   frame_count.append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
   
-# print("frames are " , frame_count)
-print("Total no of video: " , len(frame_count))
-print('Average frame per video:',np.mean(frame_count))
-print('Short_frame_count : ', len(short_frame))
+# # print("frames are " , frame_count)
+# print("Total no of video: " , len(frame_count))
+# print('Average frame per video:',np.mean(frame_count))
+# print('Short_frame_count : ', len(short_frame))
 
 from tqdm import tqdm
 # 결과 저장 리스트

@@ -1,31 +1,34 @@
 # # 원격 서버 환경
-# import sys
-# selected_model = sys.argv[1]
-# use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
-# use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-# input_file_path='/root/jiyeong/Dataset/ff++/train/*'
-# input_file_path2='/root/jiyeong/Dataset/DFDC/train/*'
-
-
-# meta_data_path='/root/jiyeong/Dataset'
-# checkpoint_path='/root/jiyeong/model/checkpoints'
-# checkpoint_name=sys.argv[4] # 체크포인트 이름
-# frames=100
-# num_epochs=int(sys.argv[5]) # 에폭 횟수
-
-#로컬 환경
 import sys
 selected_model = sys.argv[1]
 use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
 use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/train/*'
-input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/train/*'
-checkpoint_name=sys.argv[4]
-meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
-checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+input_file_path='/root/jiyeong/Dataset/ff++/train/*'
+input_file_path2='/root/jiyeong/Dataset/DFDC/train/*'
+base_path='/root/jiyeong/Dataset/'
+
+
+meta_data_path='/root/jiyeong/Dataset'
+checkpoint_path='/root/jiyeong/model/checkpoints'
+checkpoint_name=sys.argv[4] # 체크포인트 이름
 frames=100
 num_epochs=int(sys.argv[5]) # 에폭 횟수
 
+#로컬 환경
+# import sys
+# selected_model = sys.argv[1]
+# use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
+# use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
+# input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/train/*'
+# input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/train/*'
+# checkpoint_name=sys.argv[4]
+# meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
+# checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+# frames=100
+# num_epochs=int(sys.argv[5]) # 에폭 횟수
+# base_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/'
+
+sys.stdout.reconfigure(line_buffering=True)  # 모든 print문에 flush=true 설정 반영
 
 print("Check parameter")
 print(f"model_name : {selected_model}")
@@ -75,99 +78,122 @@ print(f"✅ Using device: {device}")
 
 data_list=[]
 
-# 1. THis code is to check if the video is corrupted or not / 손상된 파일인지 확인 (파일 손상 시 삭제)
-def validate_video(vid_path,train_transforms):
-      transform = train_transforms
-      count = 20
-      video_path = vid_path
-      frames = []
-      a = int(100/count)
-      first_frame = np.random.randint(0,a)
-      temp_video = video_path.split('/')[-1]
-      for i,frame in enumerate(frame_extract(video_path)):
-        frames.append(transform(frame))
-        if(len(frames) == count):
-          break
-      frames = torch.stack(frames)
-      frames = frames[:count]
-      return frames
+# # 이 코드는 원격서버에서 너무 오래 걸려서 생략
+# # 1. THis code is to check if the video is corrupted or not / 손상된 파일인지 확인 (파일 손상 시 삭제)
+# def validate_video(vid_path,train_transforms):
+#       transform = train_transforms
+#       count = 20
+#       video_path = vid_path
+#       frames = []
+#       a = int(100/count)
+#       first_frame = np.random.randint(0,a)
+#       temp_video = video_path.split('/')[-1]
+#       for i,frame in enumerate(frame_extract(video_path)):
+#         frames.append(transform(frame))
+#         if(len(frames) == count):
+#           break
+#       frames = torch.stack(frames)
+#       frames = frames[:count]
+#       return frames
 
 #extract a from from video / 영상에서 프레임 추출
-def frame_extract(path):
-  vidObj = cv2.VideoCapture(path) 
-  success = 1
-  while success:
-      success, image = vidObj.read()
-      if success:
-          yield image
+# def frame_extract(path):
+#   vidObj = cv2.VideoCapture(path) 
+#   success = 1
+#   while success:
+#       success, image = vidObj.read()
+#       if success:
+#           yield image
 
-im_size = 112
-mean = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
+# im_size = 112
+# mean = [0.485, 0.456, 0.406]
+# std = [0.229, 0.224, 0.225]
 
-train_transforms = transforms.Compose([
-                                        transforms.ToPILImage(),
-                                        transforms.Resize((im_size,im_size)),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(mean,std)])
+# train_transforms = transforms.Compose([
+#                                         transforms.ToPILImage(),
+#                                         transforms.Resize((im_size,im_size)),
+#                                         transforms.ToTensor(),
+#                                         transforms.Normalize(mean,std)])
 
-if use_input1==1 and use_input2==1:
-  video_fil = glob.glob(f'{input_file_path}/*.mp4')  # 경로 변경
-  data_list.append(input_file_path)
-  video_fil += glob.glob(f'{input_file_path2}/*.mp4') 
-  data_list.append(input_file_path2)
-elif use_input1==1:
-  video_fil = glob.glob(f'{input_file_path}/*.mp4')  # 경로 변경
-  data_list.append(input_file_path)
-elif use_input2==1:
-  video_fil = glob.glob(f'{input_file_path2}/*.mp4') 
-  data_list.append(input_file_path2)
-# video_fil += glob.glob('/content/drive/My Drive/DFDC_REAL_Face_only_data/*.mp4')
-print("Total no of videos :" , len(video_fil))
-# print(video_fil)
-count = 0
-for i in video_fil:
-  try:
-    count+=1
-    validate_video(i,train_transforms)
-  except:
-    print("Number of video processed: " , count ," Remaining : " , (len(video_fil) - count))
-    print("Corrupted video is : " , i)
-    continue
-print((len(video_fil) - count))
+# if use_input1==1 and use_input2==1:
+#   video_fil = glob.glob(f'{input_file_path}/*.mp4')  # 경로 변경
+#   data_list.append(input_file_path)
+#   video_fil += glob.glob(f'{input_file_path2}/*.mp4') 
+#   data_list.append(input_file_path2)
+# elif use_input1==1:
+#   video_fil = glob.glob(f'{input_file_path}/*.mp4')  # 경로 변경
+#   data_list.append(input_file_path)
+# elif use_input2==1:
+#   video_fil = glob.glob(f'{input_file_path2}/*.mp4') 
+#   data_list.append(input_file_path2)
+# # video_fil += glob.glob('/content/drive/My Drive/DFDC_REAL_Face_only_data/*.mp4')
+# print("Total no of videos :" , len(video_fil))
+# # print(video_fil)
+# count = 0
+# for i in video_fil:
+#   try:
+#     count+=1
+#     validate_video(i,train_transforms)
+#   except:
+#     print("Number of video processed: " , count ," Remaining : " , (len(video_fil) - count))
+#     print("Corrupted video is : " , i)
+#     continue
+# print((len(video_fil) - count))
 
 
 #2. to load preprocessod video to memory / 전처리된 영상 가져오기
-if use_input1==1 and use_input2==1:
-   video_files = glob.glob(f'{input_file_path}/*.mp4') 
-   video_files += glob.glob(f'{input_file_path2}/*.mp4')  
-elif use_input1==1:
-  video_files = glob.glob(f'{input_file_path}/*.mp4') 
-elif use_input2==1:
-  video_files = glob.glob(f'{input_file_path2}/*.mp4')    
-# video_files += glob.glob('/content/drive/My Drive/DFDC_FAKE_Face_only_data/*.mp4')
-random.shuffle(video_files)
-random.shuffle(video_files)
+# if use_input1==1 and use_input2==1:
+#    video_files = glob.glob(f'{input_file_path}/*.mp4') 
+#    video_files += glob.glob(f'{input_file_path2}/*.mp4')  
+# elif use_input1==1:
+#   video_files = glob.glob(f'{input_file_path}/*.mp4') 
+# elif use_input2==1:
+#   video_files = glob.glob(f'{input_file_path2}/*.mp4')    
+# # video_files += glob.glob('/content/drive/My Drive/DFDC_FAKE_Face_only_data/*.mp4')
+# random.shuffle(video_files)
+# random.shuffle(video_files)
 
-frame_count = []
-short_frame=[]
-print(len(video_files))
+# frame_count = []
+# short_frame=[]
+# print(len(video_files))
 
-for video_file in reversed(video_files): # 이거 앞에서 부터 하면 remove로 인해 frame_count랑 video_files 길이가 달라짐, 그래서 reversed 추가하여 뒤에서 부터 탐색!!
-  cap = cv2.VideoCapture(video_file)
-  if(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))<frames):  # frames 변수 위에서 조정
-    video_files.remove(video_file)
-    short_frame.append(video_file)
-    continue
+# for video_file in reversed(video_files): # 이거 앞에서 부터 하면 remove로 인해 frame_count랑 video_files 길이가 달라짐, 그래서 reversed 추가하여 뒤에서 부터 탐색!!
+#   cap = cv2.VideoCapture(video_file)
+#   if(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))<frames):  # frames 변수 위에서 조정
+#     video_files.remove(video_file)
+#     short_frame.append(video_file)
+#     continue
 
-  frame_count.append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+#   frame_count.append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
   
 # print("frames are " , frame_count)
-print("Total no of video: " , len(frame_count))
-print('Average frame per video:',np.mean(frame_count))
-print('Short_frame_count : ', len(short_frame))
+
+# print("Total no of video: " , len(frame_count))
+# print('Average frame per video:',np.mean(frame_count))
+# print('Short_frame_count : ', len(short_frame))
 
 
+# 엑셀 파일에서 데이터 읽기
+df_name= pd.read_excel(f'{meta_data_path}/global_meta_data.xlsx')
+if use_input1==1 and use_input2==1:
+  video_files_from_excel= df_name[df_name['split'] == 'train']['folder_path'].tolist()
+  video_files= [base_path+file for file in video_files_from_excel]
+  data_list.append(input_file_path)
+  data_list.append(input_file_path2)
+elif use_input1==1:
+  video_files_from_excel= df_name[(df_name['split'] == 'train') & (df_name['dataset'] == 'ff++')]['folder_path'].tolist()
+  video_files= [base_path+file for file in video_files_from_excel]
+  data_list.append(input_file_path)
+elif use_input2==1:
+  # video_files = glob.glob(f'{input_file_path2}/*.mp4') 
+  video_files_from_excel= df_name[(df_name['split'] == 'train') & (df_name['dataset'] == 'dfdc')]['folder_path'].tolist()
+  video_files= [base_path+file for file in video_files_from_excel]
+  data_list.append(input_file_path2)
+
+print("total no of videos : ", len(video_files))
+
+random.shuffle(video_files)
+random.shuffle(video_files)
 # 3. load the video name and labels from csv / metadata에서 real/fake 여부 가져오기
 
 class video_dataset(Dataset):
@@ -198,6 +224,7 @@ class video_dataset(Dataset):
         frames = frames[:self.count]
         #print("length:" , len(frames), "label",label)
         return frames,label
+    
     def frame_extract(self,path):
       vidObj = cv2.VideoCapture(path) 
       success = 1
@@ -242,8 +269,8 @@ header_list = ["file","label"]
 labels = pd.read_csv(f'{meta_data_path}/Global_metadata.csv',names=header_list)
 #print(labels)
 
-train_videos = video_files[:int(0.8*len(video_files))]  # 8:2으로 train:test
-valid_videos = video_files[int(0.8*len(video_files)):]
+train_videos = video_files[:int(0.7*len(video_files))]  # 8:2으로 train:test
+valid_videos = video_files[int(0.7*len(video_files)):]
 print("train : " , len(train_videos))
 print("test : " , len(valid_videos))
 # train_videos,valid_videos = train_test_split(data,test_size = 0.2)
@@ -272,13 +299,14 @@ train_data = video_dataset(train_videos,labels,sequence_length = 10,transform = 
 #print(train_data)
 val_data = video_dataset(valid_videos,labels,sequence_length = 10,transform = train_transforms)
 
-# if device=="cuda":
-#   train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 4)
-#   valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 4)
-# else:
+
+if device.type == "cuda":
+  train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 8,pin_memory=True)
+  valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 8,pin_memory=True)
+else:
 # cpu사용하기 때문에 병렬처리 뻄
-train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 0)  # 여기서 batch size 조정 (한번에 몇개의 데이터를 묶어서 학습할지, batch개수=데이터 수/batch size)
-valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 0)
+  train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 0)  # 여기서 batch size 조정 (한번에 몇개의 데이터를 묶어서 학습할지, batch개수=데이터 수/batch size)
+  valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 0)
 image,label = train_data[0]
 # im_plot(image[0,:,:,:])
 

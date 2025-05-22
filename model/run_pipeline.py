@@ -1,8 +1,10 @@
 import pandas as pd
 import subprocess
+import sys
 
 # 파라미터 파일 읽기
 df = pd.read_excel("params.xlsx")
+
 
 for idx, row in df.iterrows():
     # row 값을 리스트로 추출
@@ -16,8 +18,8 @@ for idx, row in df.iterrows():
 
     print(f"\n==== [{idx+1}/{len(df)}] Running with: {train_params} ====\n")
 
-    print("Training...")
-    subprocess.run(f"python train_model.py {train_params}", shell=True, check=True)
+    print("Training...",flush=True)
+    subprocess.run(f"python3 train_model.py {train_params}", shell=True, check=True)
 
-    print("Testing...")
-    subprocess.run(f"python test_model.py {test_params}", shell=True, check=True)
+    print("Testing...",flush=True)
+    subprocess.run(f"python3 test_model.py {test_params}", shell=True, check=True)
