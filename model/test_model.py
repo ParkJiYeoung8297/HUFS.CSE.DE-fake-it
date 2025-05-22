@@ -1,29 +1,29 @@
-# 원격 서버
-import sys
-selected_model = sys.argv[1]
-use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
-use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-test_input_file_path='/root/jiyeong/Dataset/ff++/val/*'
-test_input_file_path2='/root/jiyeong/Dataset/DFDC/val/*'
-checkpoint_path='/root/jiyeong/model/checkpoints'
-checkpoint_name=sys.argv[4]
-meta_data_path='/root/jiyeong/Dataset'
-base_path = '/root/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
-frames=100
-
-
-# # 로컬
+# # 원격 서버
 # import sys
 # selected_model = sys.argv[1]
 # use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
 # use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-# test_input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/val/*'
-# test_input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/val/*'
-# checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+# test_input_file_path='/root/jiyeong/Dataset/ff++/val/*'
+# test_input_file_path2='/root/jiyeong/Dataset/DFDC/val/*'
+# checkpoint_path='/root/jiyeong/model/checkpoints'
 # checkpoint_name=sys.argv[4]
-# meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
-# base_path = '/Users/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
+# meta_data_path='/root/jiyeong/Dataset'
+# base_path = '/root/jiyeong/Dataset'  # 상대 주소 찾기 위해 base_path 제거
 # frames=100
+
+
+# 로컬
+import sys
+selected_model = sys.argv[1]
+use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
+use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
+test_input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/val/*'
+test_input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/val/*'
+checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+checkpoint_name=sys.argv[4]
+meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
+frames=100
+base_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
 
 sys.stdout.reconfigure(line_buffering=True)  # 모든 print문에 flush=true 설정 반영
 
@@ -45,7 +45,8 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 
 import timm
-from efficientnet_pytorch import EfficientNet
+# from efficientnet_pytorch import EfficientNet
+from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 class Model(nn.Module):
     def __init__(self, num_classes,model_name="resnext50_32x4d", lstm_layers=1 , hidden_dim = 2048, bidirectional = False):
@@ -62,8 +63,11 @@ class Model(nn.Module):
           self.model = nn.Sequential(*list(model.children())[:-2])  # or model.forward_features
         elif self.model_name=="EfficientNet-b0":
            self.latent_dim = 1280 # efficient
-           model = EfficientNet.from_pretrained('efficientnet-b0')
-           self.model = model.extract_features
+           #  model = EfficientNet.from_pretrained('efficientnet-b0')
+           #  self.model = model.extract_features
+           weights = EfficientNet_B0_Weights.DEFAULT
+           model = efficientnet_b0(weights=weights)
+           self.model = nn.Sequential(*list(model.features))
         print("latet_dim: ",self.latent_dim)
 
            
@@ -192,8 +196,6 @@ elif use_input2==1:
 
 
 # new_video_files += glob.glob(f'{test_output_file_path}/*.mp4')
-# video_files += glob.glob('/content/drive/My Drive/DFDC_FAKE_Face_only_data/*.mp4')
-# video_files += glob.glob('/content/drive/My Drive/DFDC_REAL_Face_only_data/*.mp4')
 random.shuffle(new_video_files)
 random.shuffle(new_video_files)
 
@@ -238,6 +240,7 @@ with torch.no_grad():
             label = 'unknown'
         label_list.append(label)
         success, frame = cap.read()
+
         while success:
             frame_idx += 1
             if frame_idx % 5 == 0:  # 매 5번째 프레임만 뽑아서 예측 (속도 + 대표성)
@@ -249,6 +252,7 @@ with torch.no_grad():
                 fmap, outputs = model(input_tensor)
                 _, predicted = torch.max(outputs, 1)
 
+
                 frame_preds.append(predicted.item())
 
             success, frame = cap.read()
@@ -256,6 +260,7 @@ with torch.no_grad():
         cap.release()
 
         # 비디오 하나에 대한 최종 예측
+
         if len(frame_preds) == 0:
             final_prediction = 'Unknown'
         else:

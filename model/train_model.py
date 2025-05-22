@@ -1,32 +1,32 @@
-# # 원격 서버 환경
-import sys
-selected_model = sys.argv[1]
-use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
-use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-input_file_path='/root/jiyeong/Dataset/ff++/train/*'
-input_file_path2='/root/jiyeong/Dataset/DFDC/train/*'
-base_path='/root/jiyeong/Dataset/'
-
-
-meta_data_path='/root/jiyeong/Dataset'
-checkpoint_path='/root/jiyeong/model/checkpoints'
-checkpoint_name=sys.argv[4] # 체크포인트 이름
-frames=100
-num_epochs=int(sys.argv[5]) # 에폭 횟수
-
-#로컬 환경
+# # # 원격 서버 환경
 # import sys
 # selected_model = sys.argv[1]
 # use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
 # use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
-# input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/train/*'
-# input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/train/*'
-# checkpoint_name=sys.argv[4]
-# meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
-# checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+# input_file_path='/root/jiyeong/Dataset/ff++/train/*'
+# input_file_path2='/root/jiyeong/Dataset/DFDC/train/*'
+# base_path='/root/jiyeong/Dataset/'
+
+
+# meta_data_path='/root/jiyeong/Dataset'
+# checkpoint_path='/root/jiyeong/model/checkpoints'
+# checkpoint_name=sys.argv[4] # 체크포인트 이름
 # frames=100
 # num_epochs=int(sys.argv[5]) # 에폭 횟수
-# base_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/'
+
+#로컬 환경
+import sys
+selected_model = sys.argv[1]
+use_input1= int(sys.argv[2])  # 첫 번째 인자 [0,1] / 1이면 사용, 0이면 사용 X
+use_input2= int(sys.argv[3])  # 두 번째 인자 [0,1]
+input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/train/*'
+input_file_path2=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DFDC/train/*'
+checkpoint_name=sys.argv[4]
+meta_data_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset'
+checkpoint_path=f'/Users/jiyeong/HUFS.CSE.DE-fake-it/model/checkpoints'
+frames=100
+num_epochs=int(sys.argv[5]) # 에폭 횟수
+base_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/'
 
 sys.stdout.reconfigure(line_buffering=True)  # 모든 print문에 flush=true 설정 반영
 
@@ -315,7 +315,8 @@ from torch import nn
 from torchvision import models
 
 import timm
-from efficientnet_pytorch import EfficientNet
+# from efficientnet_pytorch import EfficientNet
+from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 class Model(nn.Module):
     def __init__(self, num_classes,model_name="resnext50_32x4d", lstm_layers=1 , hidden_dim = 2048, bidirectional = False):
@@ -332,8 +333,14 @@ class Model(nn.Module):
           self.model = nn.Sequential(*list(model.children())[:-2])  # or model.forward_features
         elif self.model_name=="EfficientNet-b0":
            self.latent_dim = 1280 # efficient
-           model = EfficientNet.from_pretrained('efficientnet-b0')
-           self.model = model.extract_features
+           #  model = EfficientNet.from_pretrained('efficientnet-b0')
+           #  self.model = model.extract_features
+           weights = EfficientNet_B0_Weights.DEFAULT
+           model = efficientnet_b0(weights=weights)
+           self.model = nn.Sequential(*list(model.features))
+
+
+
         print("latet_dim: ",self.latent_dim)
 
            
