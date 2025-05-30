@@ -123,7 +123,7 @@ if __name__ == '__main__':
     # 각 작업을 별도 프로세스로 실행
     p1 = Process(target=run_job, args=('FakeVideo-FakeAudio/Caucasian (American)/men/*', output_path))        # Input file path, 입력 파일 경로 - 파일 경로 수정!!
     p2 = Process(target=run_job, args=('FakeVideo-FakeAudio/Caucasian (American)/women/*', output_path2))        # Input file path, 입력 파일 경로 - 파일 경로 수정!!
-    # p3 = Process(target=run_job, args=('to3', output_path))        # Input file path, 입력 파일 경로 - 파일 경로 수정!!
+    # p3 = Process(target=run_job, args=('to3', output_path3))        # Input file path, 입력 파일 경로 - 파일 경로 수정!!
 
     # 병렬 실행 시작
     p1.start()
