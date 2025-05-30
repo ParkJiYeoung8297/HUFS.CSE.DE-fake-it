@@ -7,7 +7,7 @@ df = pd.read_excel("params.xlsx")
 
 
 for idx, row in df.iterrows():
-    # row 값을 리스트로 추출
+    # row 값을 리스트로 추출 
     params = [str(v) for v in row.values]
 
     # 첫 5개 파라미터 전체: train_model.py

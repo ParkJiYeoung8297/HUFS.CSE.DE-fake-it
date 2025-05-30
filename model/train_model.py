@@ -301,8 +301,8 @@ val_data = video_dataset(valid_videos,labels,sequence_length = 10,transform = tr
 
 
 if device.type == "cuda":
-  train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 8,pin_memory=True)
-  valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 8,pin_memory=True)
+  train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 2,pin_memory=True)
+  valid_loader = DataLoader(val_data,batch_size = 32,shuffle = True,num_workers = 2,pin_memory=True)
 else:
 # cpu사용하기 때문에 병렬처리 뻄
   train_loader = DataLoader(train_data,batch_size = 32,shuffle = True,num_workers = 0)  # 여기서 batch size 조정 (한번에 몇개의 데이터를 묶어서 학습할지, batch개수=데이터 수/batch size)
