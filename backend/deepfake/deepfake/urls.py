@@ -18,10 +18,19 @@ from django.contrib import admin
 from django.urls import path
 from .views import helloAPI
 from .views import index
+from django.conf import settings
+from django.conf.urls.static import static
+from detection.views import upload_video
+from detection.views import show_video
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', index), # React 앱 메인 페이지
     path("hello/",helloAPI),
+    path('upload/',upload_video),
+    path('showVideo/',show_video),
 
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

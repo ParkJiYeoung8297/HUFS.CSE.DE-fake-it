@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import DeepfakeDetector from "./components/DeepfakeDetector";
 import './App.css';
+
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import DeepfakeDetector from "./components/DeepfakeDetector";
+import DeepfakeResult from "./components/DeepfakeResult";
 
 function App() {
   const [message, setMessage] = useState('');
@@ -15,7 +18,17 @@ function App() {
       .catch(error => console.error('Error fetching data: ', error));
   }, []);
 
-  return <DeepfakeDetector />;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<DeepfakeDetector />} />
+        <Route path="/result" element={<DeepfakeResult />} />
+      </Routes>
+    </Router>
+
+  );
+
+  // <DeepfakeDetector />;
 
 }
 

@@ -117,3 +117,30 @@
   color: #ccc;
   font-size: 1rem;
 }
+
+.upload-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.upload-btn:hover {
+  background-color: #0056b3;
+}
+
+/* .video-preview-box {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.video-preview {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 10px;
+} */
