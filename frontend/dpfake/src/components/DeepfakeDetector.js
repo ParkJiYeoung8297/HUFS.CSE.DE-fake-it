@@ -45,8 +45,6 @@ export default function DeepfakeDetector() {
           setIsUploading(false); // ✅ 로딩 종료
         }
 
-
-
       } else {
         alert("Please upload a valid video file.");
       }
@@ -95,7 +93,9 @@ export default function DeepfakeDetector() {
         
         navigate("/result", {
         state: {
+          prediction:result.prediction,
           probability: result.probability,
+          grad_cam_Video: result.grad_cam_video_url,
           // convertedVideo: result.converted_video_url,
           originalImage: result.original_frame_url,
           heatmapImage: result.heatmap_url,

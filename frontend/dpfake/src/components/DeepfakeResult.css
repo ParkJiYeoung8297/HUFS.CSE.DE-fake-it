@@ -21,10 +21,11 @@
   width: 100%;
   max-width: 768px;
   margin-bottom: 40px;
+  text-align: center;
 }
 
 .video-player {
-  width: 100%;
+  width: 50%;
   border: 1px solid #777;
   border-radius: 8px;
 }
