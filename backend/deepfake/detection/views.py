@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .df_model.preprocessing import process_single_video
 from .df_model.detection_model import run_detection_model
-from .df_model.grad_cam import calculate_roi_scores
+# from .df_model.grad_cam import calculate_roi_scores
 from .df_model.all_grad_cam import all_calculate_roi_scores
 
 
@@ -42,7 +42,8 @@ def upload_video(request):
         final_result = None  # 초기화
         if result["Prediction"]=="FAKE":
             try:
-                final_result=all_calculate_roi_scores(output_path,uploaded_file.name,checkpoint_name='checkpoint_1')
+                response_txt,grad_cam_path,output_dir_box=all_calculate_roi_scores(output_path,uploaded_file.name,checkpoint_name='checkpoint_1')
+
             except Exception as e:
                 return JsonResponse({"error": "Grad_cam failed", "detail": str(e)}, status=500)
 
@@ -51,7 +52,9 @@ def upload_video(request):
             "message": "Success",
             "prediction": result["Prediction"],
             "probability": result["Probability"],
-            "grad_cam_video_url": f"/media/preprocessed_{filename}/converted_grad_cam_on_original.mp4"
+            "grad_cam_video_url": f"/media/preprocessed_{filename}/converted_grad_cam_on_original.mp4",
+            "output_box_video_url": f"/media/preprocessed_{filename}/converted_output_box_on_original.mp4",
+            "explanations": response_txt
             # "final_result":final_result  #직렬화 필요함
         })
 

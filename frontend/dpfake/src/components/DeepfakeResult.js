@@ -4,15 +4,33 @@ import { useLocation } from "react-router-dom";
 
 export default function DeepfakeResult() {
   const location = useLocation();  
-  const { prediction, probability, grad_cam_Video, originalImage, heatmapImage } = location.state;
+  const { prediction, probability, grad_cam_Video, output_box_Video,explanations, originalImage, heatmapImage } = location.state;
   
 
   return (
+
     <div className="page-container">
+        {/* ✅ 상단 네비게이션 바 */}
+        <nav className="navbar">
+          <div className="navbar-logo" onClick={() => window.location.reload()}>DE-Fake it</div>
+          <div className="navbar-menu">
+            <a href="#about">About Us</a>
+            <a href="#" onClick={() => window.location.reload()}>Home</a>
+          </div>
+        </nav>
       <h1 className="title">Real or Fake</h1>
 
-        <div className="video-container">
+        <div className="video-container" >
         {grad_cam_Video ? (
+          <video controls
+          className="video-player">
+            <source src={output_box_Video} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        ) : (
+          <p>영상을 불러오는 중입니다...</p>
+        )}
+                {grad_cam_Video ? (
           <video controls
           className="video-player">
             <source src={grad_cam_Video} type="video/mp4" />
@@ -34,13 +52,11 @@ export default function DeepfakeResult() {
         </video>
       </div> */}
       <h2 className="label-fake">{prediction}</h2>
-      <p className="probability">
-        Probability: <span>{probability}%</span>
-      </p>
 
       <h3 className="reason-title">Reason for Judgment</h3>
       <p className="reason-text">
-        Signs of deepfake content have been detected in the video. The Grad-CAM visualization of the face is shown below.
+        This video was classified as {prediction} with a {probability}% probability.<br />
+        {explanations}
       </p>
 
       <div className="image-stack">

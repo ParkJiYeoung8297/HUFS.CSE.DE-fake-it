@@ -96,6 +96,8 @@ export default function DeepfakeDetector() {
           prediction:result.prediction,
           probability: result.probability,
           grad_cam_Video: result.grad_cam_video_url,
+          output_box_Video: result.output_box_video_url,
+          explanations: result.explanations,
           // convertedVideo: result.converted_video_url,
           originalImage: result.original_frame_url,
           heatmapImage: result.heatmap_url,

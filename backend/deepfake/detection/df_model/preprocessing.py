@@ -26,8 +26,8 @@ def process_single_video(video_path, output_path,filename ):
     frames = []
 
     for idx, frame in enumerate(frame_extract(video_path)):
-        if idx > 150:
-            break
+        # if idx > 150:
+        #     break
         frames.append(frame)
         if len(frames) == 4:
             faces = face_recognition.batch_face_locations(frames)
