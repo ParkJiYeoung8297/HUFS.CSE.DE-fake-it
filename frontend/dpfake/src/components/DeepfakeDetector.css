@@ -1,0 +1,146 @@
+.container {
+  min-height: 100vh;
+  background-color: #000;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 16px;
+  font-family: sans-serif;
+  padding-top: 100px; /* 기존 패딩에 더해줌 */
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.subtitle {
+  color: #ccc;
+  max-width: 600px;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.upload-box {
+  border: 2px dashed #777;
+  border-radius: 8px;
+  padding: 32px;
+  margin-bottom: 40px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.upload-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.upload-click {
+  text-decoration: underline;
+  cursor: pointer;
+  color: #7ec8ff;
+}
+
+.probability {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.images {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.image-box {
+  border-radius: 6px;
+  width: 100%;
+  max-width: 400px;
+}
+
+
+/* ✅ Navbar 스타일 */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* 다른 요소 위에 표시되도록 */
+  background-color: #0f1116;
+  padding: 16px 32px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer; /* ← 손 모양 커서로 변경 */
+}
+
+.navbar-menu a {
+  margin-left: 24px;
+  color: #ccc;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.navbar-menu a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+
+/* ✅ About 섹션 */
+.about-section {
+  background-color: #1a1a1a;
+  color: white;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.about-section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+}
+
+.about-section p {
+  max-width: 600px;
+  margin: 0 auto;
+  color: #ccc;
+  font-size: 1rem;
+}
+
+.upload-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.upload-btn:hover {
+  background-color: #0056b3;
+}
+
+/* .video-preview-box {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.video-preview {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 10px;
+} */
