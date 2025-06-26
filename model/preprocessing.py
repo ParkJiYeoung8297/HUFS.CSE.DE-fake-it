@@ -1,18 +1,34 @@
-input_file_path='/Users/jiyeong/Desktop/컴공 캡스톤/FakeAVCeleb_v1.2/Dataset'
-output_file_path='/Users/jiyeong/Desktop/컴공 캡스톤/FakeAVCeleb_v1.2/Dataset/fake_pr/Caucasian (American)'
-# 도커 서버로 돌리기 위해 상대 주소로 변경
-# input_file_path = '/input'
-# output_file_path = '/output'
-
-# 1. To get the average frame count and select the frame with 150 frames and more  - 각 영상의 프레임 수 확인 후 150 프레임 이상인 프레임만 선별
+from facenet_pytorch import MTCNN
+import cv2
+import os
+import glob
+import tqdm
+import torch
 import json
 import glob
 import numpy as np
-import cv2
 import copy
 import pandas as pd
-def average_frame_count(i):
-  input_path = f'{input_file_path}/{i}/*.mp4'  #Input file path, 입력 파일 경로 - 파일 경로 수정!!
+import torch
+import torchvision
+from torchvision import transforms
+from torch.utils.data import DataLoader
+from torch.utils.data.dataset import Dataset
+import matplotlib.pyplot as plt
+# import face_recognition
+# from tqdm.autonotebook import tqdm
+import tqdm
+
+# 장치 설정
+# device = torch.device("mps") if torch.backends.mps.is_available() else (
+# torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+# )
+device=torch.device("cpu")
+print(f"Using device: {device}")
+
+
+def average_frame_count(input_file_path):
+  input_path = f'{input_file_path}/*.mp4'  #Input file path, 입력 파일 경로 - 파일 경로 수정!!
   video_files = glob.glob(input_path)
   frame_count = []
   video_list = []
@@ -30,7 +46,6 @@ def average_frame_count(i):
     cap.release()  # 자원 해제
 
   # print("frames" , frame_count)
-  print(i)
   print("Total number of videos: " , len(frame_count))
   print('Average frame per video:',np.mean(frame_count))
   print('Short frame video:',len(short_frame))
@@ -49,88 +64,82 @@ def frame_extract(path):
       if success:
           yield image
 
-# 3. process the frames - 프레임에서 추출된 얼굴을 새로운 영상으로 저장
-import torch
-import torchvision
-from torchvision import transforms
-from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
-import os
-import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-import face_recognition
-from tqdm.autonotebook import tqdm
-# process the frames
-def create_face_videos(path_list,out_dir):
 
-  # Ensure to use MPS for MacBook -MPS GPu 사용하기
-  device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
-  print(f"Using device: {device}")
+# MTCNN 초기화
+mtcnn = MTCNN(keep_all=False, device=device)  # 가장 잘 잡힌 얼굴 하나만 사용
 
-  # 이미 처리되어 저장된 영상 개수 확인
-  already_present_count = glob.glob(out_dir + '/*.mp4')
-  print("No of videos already present ", len(already_present_count))
+def create_face_videos(path_list, out_dir):
 
-  for path in tqdm(path_list):
-    print(path)
-    out_path = os.path.join(out_dir,path.split('/')[-1]) # 영상 파일 이름 추출
-    print(out_path)
-    file_exists = glob.glob(out_path)
-    print(file_exists)
-    if(len(file_exists) != 0): # 이미 존재하면 pass
-      print("File Already exists: " , out_path)
-      continue
+    # 이미 처리된 영상 개수 출력
+    already_present_count = glob.glob(out_dir + '/*.mp4')
+    print("No of videos already present:", len(already_present_count))
 
-    frames = []
-    flag = 0
-    face_all = []
-    frames1 = []
-    out = cv2.VideoWriter(out_path,cv2.VideoWriter_fourcc('M','J','P','G'), 30, (112,112))
-    for idx,frame in enumerate(frame_extract(path)):
-      #if(idx % 3 == 0):
-      if(idx <= 150):
-        frames.append(frame)
-        # 4프레임씩 묶어서 얼굴 탐지 (속도 개선 목적)
-        if(len(frames) == 4):
-          faces = face_recognition.batch_face_locations(frames) #얼굴 위치
-          for i,face in enumerate(faces):
-            if(len(face) != 0): #얼굴이 포착되면
-              top,right,bottom,left = face[0] #얼굴 첫 좌표 추출
-            try:
-              out.write(cv2.resize(frames[i][top:bottom,left:right,:],(112,112)))
-            except:
-              pass
-          frames = []
-    try:
-      del top,right,bottom,left
-    except:
-      pass
-    out.release()
+    for path in tqdm.tqdm(path_list):
+        out_path = os.path.join(out_dir, os.path.basename(path))
 
+        # 이미 존재하면 건너뜀
+        if os.path.exists(out_path):
+            print("File already exists:", out_path)
+            continue
+
+        frames = []
+        out = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*'MJPG'), 30, (224,224))
+
+        for idx, frame in enumerate(frame_extract(path)):
+            # if idx > 150:
+            #     break
+
+            # BGR to RGB 변환
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # 얼굴 감지
+            box, _ = mtcnn.detect(rgb_frame)
+
+            if box is not None:
+                x1, y1, x2, y2 = map(int, box[0])  # 첫 번째 얼굴만 사용
+                x1 = max(0, x1)
+                y1 = max(0, y1)
+                x2 = min(frame.shape[1], x2)
+                y2 = min(frame.shape[0], y2)
+
+                face = frame[y1:y2, x1:x2]
+                if face.size != 0:
+                    resized_face = cv2.resize(face, (224,224))
+                    out.write(resized_face)
+
+        out.release()
+
+
+
+input_file_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/FaceForensics++_C23'
+output_file_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++(원본)'
+data_details="NeuralTextures"
 
 # main function (include 1,2, 3 function) - 위에 1,2,3 함수들 포함하는 메인 함수
 from multiprocessing import Process  
-def run_job(i, output_dir):
-    video_files = average_frame_count(i)
-    create_face_videos(video_files, output_dir)
+def run_job(input_dir, output_dir):
+  video_files = average_frame_count(input_dir)
+  create_face_videos(video_files, output_dir) 
 
 # parallel processing process - 병렬 처리 프로세스
 if __name__ == '__main__':
-    output_path = f"{output_file_path}/men"  # Output file path - 목적지 파일 경로 , 파일 경로 수정!!
-    output_path2 = f"{output_file_path}/women"
 
-    # 각 작업을 별도 프로세스로 실행
-    p1 = Process(target=run_job, args=('FakeVideo-FakeAudio/Caucasian (American)/men/*', output_path))        # Input file path, 입력 파일 경로 - 파일 경로 수정!!
-    p2 = Process(target=run_job, args=('FakeVideo-FakeAudio/Caucasian (American)/women/*', output_path2))        # Input file path, 입력 파일 경로 - 파일 경로 수정!!
-    # p3 = Process(target=run_job, args=('to3', output_path3))        # Input file path, 입력 파일 경로 - 파일 경로 수정!!
+  input_path = f"{input_file_path}/{data_details}"
+  input_path2 = f"{input_file_path}/{data_details}2"
+  # input_path3 = f"{input_file_path}/{data_details}3"
+  output_path = f"{output_file_path}/{data_details}"
 
-    # 병렬 실행 시작
-    p1.start()
-    p2.start()
-    # p3.start()
+  # 각 작업을 별도 프로세스로 실행
+  p1 = Process(target=run_job, args=(input_path, output_path))        # Input file path, 입력 파일 경로
+  # p2 = Process(target=run_job, args=(input_path2, output_path))        # Input file path, 입력 파일 경로 
+  # p3 = Process(target=run_job, args=(input_path2, output_path))        # Input file path, 입력 파일 경로 
 
-    # 메인 프로세스는 세 개 작업 모두 완료될 때까지 대기
-    p1.join()
-    p2.join()
-    # p3.join()
+  # 병렬 실행 시작
+  p1.start()
+  # p2.start()
+  # p3.start()
+
+  # 메인 프로세스는 세 개 작업 모두 완료될 때까지 대기
+  p1.join()
+  # p2.join()
+  # p3.join()
