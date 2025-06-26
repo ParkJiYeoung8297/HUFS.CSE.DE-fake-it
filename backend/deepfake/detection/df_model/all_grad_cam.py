@@ -88,10 +88,17 @@ def run_grad_cam(model, input_tensor, target_class=None, device = torch.device("
 
 def save_Top10_gradcam_images(input_video_path, model,file_name,device):
 
+    # transform = T.Compose([
+    #     T.ToTensor(),
+    #     T.Resize((224,224)),
+    #     T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    # ])
     transform = T.Compose([
-        T.ToTensor(),
+        T.ToPILImage(),  # <--- 이 줄을 추가합니다!
         T.Resize((224, 224)),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        T.ToTensor(),
+        T.Normalize(mean=[0.485,0.456,0.406],
+                             std=[0.229,0.224,0.225])
     ])
 
     model.to(device)
@@ -164,22 +171,22 @@ def get_bbox(pts):
     return int(x.min()), int(y.min()), int(x.max()), int(y.max())
 
 def roi_activation(cam, bbox, topk=0.1):
-    # x1, y1, x2, y2 = bbox
-    # patch = cam[y1:y2, x1:x2]
-    # mean_val = float(patch.mean())
-
-    # if np.isnan(mean_val):
-    #     return -1
-    # return mean_val
-
     x1, y1, x2, y2 = bbox
     patch = cam[y1:y2, x1:x2]
-    if patch.size == 0:
-        return -1
-
     mean_val = float(patch.mean())
-    max_val = float(patch.max())
-    return 0.8 * mean_val + 0.2 * max_val 
+
+    if np.isnan(mean_val):
+        return -1
+    return mean_val
+
+    # x1, y1, x2, y2 = bbox
+    # patch = cam[y1:y2, x1:x2]
+    # if patch.size == 0:
+    #     return -1
+
+    # mean_val = float(patch.mean())
+    # max_val = float(patch.max())
+    # return 0.8 * mean_val + 0.2 * max_val 
 
 
 def get_gradcam_peak(cam):
@@ -231,8 +238,10 @@ def all_calculate_roi_scores(video_path,file_name,checkpoint_name='checkpoint_1'
 
 
     transform = T.Compose([
-        T.ToTensor(),
+        # T.ToTensor(),
+        T.ToPILImage(),
         T.Resize((224, 224)),
+        T.ToTensor(),
         T.Normalize(mean=[0.485, 0.456, 0.406],
                     std=[0.229, 0.224, 0.225])
     ])
@@ -360,7 +369,7 @@ def all_calculate_roi_scores(video_path,file_name,checkpoint_name='checkpoint_1'
         video_writer_orig.release()
 
 
-    # ✅ grad-cam 영산
+    # ✅ grad-cam 영상
     grad_video_path_original = os.path.join(video_path, f'grad_cam_on_original.mp4')
     orig_frames = sorted(glob.glob(f"{grad_cam_path}/*.jpg"))
 

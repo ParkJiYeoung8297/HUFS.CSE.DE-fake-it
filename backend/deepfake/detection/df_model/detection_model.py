@@ -60,14 +60,14 @@ def run_detection_model(video_path, selected_model='resnext50_32x4d', checkpoint
 
     # 모델 구조를 다시 정의
     model = Model(num_classes=2, model_name=selected_model).to(device)
-    # checkpoint 불러오기
     model.load_state_dict(torch.load(f'{checkpoint_path}/{checkpoint_name}.pt'))
+    model.to(device)
     # 3. 평가 모드 전환
     model.eval()
 
     transform = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.Resize((112, 112)),
+        transforms.Resize((224,224)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406],
                             [0.229, 0.224, 0.225])
