@@ -6,12 +6,12 @@ import os
 import pandas as pd
 
 
-video_files =  glob.glob('/root/jiyeong/Dataset/*/*/*/*.mp4')   # 경로 지정
-base_path = '/root/jiyeong/Dataset' # 기준 경로
+video_files =  glob.glob('/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/*/*/*/*.mp4')   # 경로 지정
+base_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset' # 기준 경로
 
 # 저장할 엑셀 파일 경로
-output_excel_path = '/root/jiyeong/Dataset/global_meta_data.xlsx'
-output_csv_path = '/root/jiyeong/Dataset/Global_metadata.csv'
+output_excel_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/global_meta_data.xlsx'
+output_csv_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/Global_metadata.csv'
 
 # 데이터 수집
 file_name_list = []
@@ -19,6 +19,7 @@ folder_path_list = []
 label_list = []
 split_list = []
 dataset_list = []
+type_list=[]
 frame_count_list = []
 
 for video_file in video_files:
@@ -44,26 +45,37 @@ for video_file in video_files:
     # split (train/val)
     if '/train/' in relative_path.lower():
         split = 'train'
-    elif '/val/' in relative_path.lower():
-        split = 'val'
+    elif '/test/' in relative_path.lower():
+        split = 'test'
     else:
         split = 'unknown'
     split_list.append(split)
 
-    # dataset (celeb/dfdc)
-    if 'fakeavceleb' in relative_path.lower():
-        dataset = 'fakeavceleb'
+    # dataset (ff++/dfdc)
+    if 'ff++' in relative_path.lower():
+        dataset = 'ff++'
     elif 'dfdc' in relative_path.lower():
         dataset = 'dfdc'
-    elif 'celeb'in relative_path.lower():
-        dataset = 'celeb'
-    elif 'ff++' in relative_path.lower():
-        dataset = 'ff++'
-    elif 'deepspeak' in relative_path.lower():
-        dataset = 'deepspeak'
     else:
         dataset = 'unknown'
     dataset_list.append(dataset)
+
+    # deepfake type ()
+    if 'original' in relative_path.lower():
+        deepfake_type = 'original'
+    elif 'faceswap' in relative_path.lower():
+        deepfake_type = 'FaceSwap'
+    elif 'faceshifter' in relative_path.lower():
+        deepfake_type = 'FaceShifter'
+    elif 'face2face' in relative_path.lower():
+        deepfake_type = 'Face2Face'
+    elif 'neuraltextures' in relative_path.lower():
+        deepfake_type = 'NeuralTextures'
+    elif 'deepfakes' in relative_path.lower():
+        deepfake_type = 'Deepfakes'   
+    else:
+        deepfake_type = 'unknown'
+    type_list.append(deepfake_type)
 
     # frame 수
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -78,12 +90,14 @@ df = pd.DataFrame({
     'label': label_list,
     'split': split_list,
     'dataset': dataset_list,
+    'method': type_list,
     'frame': frame_count_list
 })
 
 df2 = pd.DataFrame({
     'file_name': file_name_list,
     'label': label_list,
+    'method': type_list,
 })
 
 
