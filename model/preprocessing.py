@@ -1,3 +1,4 @@
+
 from facenet_pytorch import MTCNN
 import cv2
 import os
@@ -86,8 +87,8 @@ def create_face_videos(path_list, out_dir):
         out = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*'MJPG'), 30, (224,224))
 
         for idx, frame in enumerate(frame_extract(path)):
-            # if idx > 150:
-            #     break
+            if idx > 150:
+                break
 
             # BGR to RGB 변환
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -115,6 +116,7 @@ input_file_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/FaceForensics++
 output_file_path='/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++(원본)'
 data_details="NeuralTextures"
 
+# 아래는 병렬 처리 코드 쓰려면 써
 # main function (include 1,2, 3 function) - 위에 1,2,3 함수들 포함하는 메인 함수
 from multiprocessing import Process  
 def run_job(input_dir, output_dir):
