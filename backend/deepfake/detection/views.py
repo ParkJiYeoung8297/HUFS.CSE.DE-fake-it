@@ -40,6 +40,8 @@ def upload_video(request):
             return JsonResponse({"error": "Detection failed", "detail": str(e)}, status=500)
         # 3. ✅ Grad_cam
         final_result = None  # 초기화
+        print(result["Prediction"])
+        print(result["Probability"])
         if result["Prediction"]=="FAKE":
             try:
                 response_txt,grad_cam_path,output_dir_box=all_calculate_roi_scores(output_path,uploaded_file.name,checkpoint_name='checkpoint_1')

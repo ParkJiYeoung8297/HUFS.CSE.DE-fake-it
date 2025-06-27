@@ -1,45 +1,53 @@
 import os
 import cv2
 import torch
-import face_recognition
+from facenet_pytorch import MTCNN
 
-def process_single_video(video_path, output_path,filename ):
-    # 출력 경로 생성
+def frame_extract(path):
+    cap = cv2.VideoCapture(path)
+    while True:
+        success, frame = cap.read()
+        if not success:
+            break
+        yield frame
+    cap.release()
+
+def process_single_video(video_path, output_path, filename):
     os.makedirs(output_path, exist_ok=True)
-    output_video_path = os.path.join(output_path,filename)
+    output_video_path = os.path.join(output_path, filename)
 
-    # 이미 처리된 경우 생략
-    # if os.path.exists(output_video_path):
-    #     return output_video_path
+    device = torch.device("mps") if torch.backends.mps.is_available() else (
+        torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    )
+    print(f"Using device: {device}")
 
-    def frame_extract(path):
-        vidObj = cv2.VideoCapture(path)
-        success = 1
+    mtcnn = MTCNN(keep_all=False, device=torch.device('cpu'))
 
-        while success:
-            success, image = vidObj.read()
-            if success:
-                yield image
+    # 저장용 비디오 객체 (112x112 크기)
+    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'MJPG'), 30, (224,224))
 
-    # VideoWriter 설정
-    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'MJPG'), 30, (112,112))
-    frames = []
+    for frame in frame_extract(video_path):
+        try:
+            # RGB로 변환
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            boxes, _ = mtcnn.detect(rgb)
 
-    for idx, frame in enumerate(frame_extract(video_path)):
-        # if idx > 150:
-        #     break
-        frames.append(frame)
-        if len(frames) == 4:
-            faces = face_recognition.batch_face_locations(frames)
-            for i, face in enumerate(faces):
-                if len(face) != 0:
-                    top, right, bottom, left = face[0]
-                    try:
-                        cropped = cv2.resize(frames[i][top:bottom, left:right], (112,112))
-                        out.write(cropped)
-                    except:
-                        pass
-            frames = []
+            if boxes is not None:
+                x1, y1, x2, y2 = map(int, boxes[0])  # 첫 번째 얼굴만 사용
+                h, w, _ = frame.shape
+                x1 = max(0, x1)
+                y1 = max(0, y1)
+                x2 = min(w, x2)
+                y2 = min(h, y2)
+
+                face = frame[y1:y2, x1:x2]
+                if face.size != 0:
+                    resized = cv2.resize(face, (224,224))
+                    out.write(resized)
+        except Exception as e:
+            print(f"Error processing frame: {e}")
+            continue
 
     out.release()
+    print("Saved:", output_video_path)
     return output_video_path
