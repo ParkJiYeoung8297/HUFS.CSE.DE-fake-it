@@ -6,12 +6,14 @@ import os
 import pandas as pd
 
 
-video_files =  glob.glob('/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/*/*/*/*.mp4')   # 경로 지정
+# video_files =  glob.glob('/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/*/*/*/*.mp4')   # 경로 지정
+video_files =  glob.glob('/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DeeperForensics/*/*.mp4')   # 경로 지정
 base_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset' # 기준 경로
 
 # 저장할 엑셀 파일 경로
-output_excel_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/global_meta_data.xlsx'
-output_csv_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++/Global_metadata.csv'
+output_excel_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DeeperForensics/global_meta_data.xlsx'
+output_csv_path = '/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/DeeperForensics/Global_metadata.csv'
+
 
 # 데이터 수집
 file_name_list = []
@@ -45,6 +47,8 @@ for video_file in video_files:
     # split (train/val)
     if '/train/' in relative_path.lower():
         split = 'train'
+    elif '/validation/' in relative_path.lower():
+        split = 'validation'
     elif '/test/' in relative_path.lower():
         split = 'test'
     else:
@@ -56,6 +60,9 @@ for video_file in video_files:
         dataset = 'ff++'
     elif 'dfdc' in relative_path.lower():
         dataset = 'dfdc'
+    elif 'DeeperForensics' in relative_path.lower():
+        dataset = 'deeperforencis'
+        
     else:
         dataset = 'unknown'
     dataset_list.append(dataset)
