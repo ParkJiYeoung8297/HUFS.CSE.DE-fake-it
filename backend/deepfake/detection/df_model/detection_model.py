@@ -13,57 +13,28 @@ import pandas as pd
 import glob
 import random
 import numpy as np
-
-frames=100
+from .model import Model
 
 checkpoint_path=Path(__file__).resolve().parent
 
-class Model(nn.Module):
-    def __init__(self, num_classes,model_name="resnext50_32x4d", lstm_layers=1 , hidden_dim = 2048, bidirectional = False):
-        super(Model, self).__init__()
-        self.model_name = model_name 
+def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint_name='checkpoint_v35'):
 
-        model = models.resnext50_32x4d(pretrained = True) #Residual Network CNN
-        self.model = nn.Sequential(*list(model.children())[:-2])
-        self.latent_dim = 2048
-        self.lstm = nn.LSTM(self.latent_dim,hidden_dim, lstm_layers,  bidirectional)
-        self.relu = nn.LeakyReLU()
-        self.dp = nn.Dropout(0.4)
-        self.linear1 = nn.Linear(hidden_dim,num_classes) # hidden_dim 변수로 넣어줌
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
-
-    def forward(self, x):
-        batch_size,seq_length, c, h, w = x.shape
-        x = x.view(batch_size * seq_length, c, h, w)
-        fmap = self.model(x)
-        x = self.avgpool(fmap)
-        x = x.view(batch_size,seq_length,self.latent_dim) # resnext50_32x4d, xception : 2048, efficientnet-b0 : 1280
-        x_lstm,_ = self.lstm(x,None)
-        return fmap,self.dp(self.linear1(torch.mean(x_lstm,dim = 1)))
+    # ✅ Set the device to MPS(for Mac) if available, otherwise fallback to CUDA or CPU
+    device = torch.device("mps") if torch.backends.mps.is_available() else (
+    torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    )
+    print(f"Using device: {device}")
 
 
-def run_detection_model(video_path, selected_model='resnext50_32x4d', checkpoint_name='checkpoint_1'):
-    video_name = os.path.basename(video_path)
-
-    if torch.backends.mps.is_available():
-        print("MPS is available. Using MPS.")
-        device = torch.device("mps")
-    elif torch.cuda.is_available():
-        print("CUDA is available. Using CUDA.")
-        device = torch.device("cuda")
-    else:
-        print("CUDA and MPS not available. Using CPU.")
-        device = torch.device("cpu")
-
-    print(f"✅ Using device: {device}")
-
-
-    # 모델 구조를 다시 정의
-    model = Model(num_classes=2, model_name=selected_model).to(device)
-    model.load_state_dict(torch.load(f'{checkpoint_path}/{checkpoint_name}.pt'))
-    model.to(device)
-    # 3. 평가 모드 전환
+    # 모델 구조를 정의
+    model = Model(num_binary_classes=2, num_method_classes=7, model_name=selected_model).to(device)
+    model.load_state_dict(torch.load(f'{checkpoint_path}/{checkpoint_name}.pt', map_location=device))
     model.eval()
+
+    if not os.path.exists(video_path):
+        raise ValueError(f"비디오 파일이 존재하지 않습니다: {video_path}")
+
+    video_name = os.path.basename(video_path)
 
     transform = transforms.Compose([
         transforms.ToPILImage(),
@@ -74,56 +45,122 @@ def run_detection_model(video_path, selected_model='resnext50_32x4d', checkpoint
     ])
 
 
-    # 결과 저장 리스트
-    results = []
-    label_list = []
-    folder_path_list=[]
+    # # 결과 저장 리스트
+    # results = []
+    # label_list = []
+    # folder_path_list=[]
+    # frame_probs = []
+
+    # # ✅ 결과 저장 리스트 초기화
+    # method_pred_list = []  # ROC Curve 용
+    # video_bin_scores = []   # t-SNE 시각화용
+
+    # # ✅ 결과 저장 리스트 초기화
+    # results = []
+    # label_list = []
+    # folder_path_list = []
+    # method_list = []
+    # # video_feature_array = []
+
     frame_probs = []
+
 
     with torch.no_grad():
         cap = cv2.VideoCapture(video_path)
+        # frame_preds = []
+        # frame_idx = 0
         frame_preds = []
+        method_preds=[]
+        pooled_features_per_video = []
+        frame_scores = []
         frame_idx = 0
 
         success, frame = cap.read()
 
         while success:
             frame_idx += 1
-            if frame_idx % 5 == 0:  # 매 5번째 프레임만 뽑아서 예측 (속도 + 대표성)
+            if frame_idx % 1 == 0:  # 매 5번째 프레임만 뽑아서 예측 (속도 + 대표성)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 input_tensor = transform(frame)
                 input_tensor = input_tensor.unsqueeze(0).unsqueeze(0)  # (batch=1, seq_len=1, c=3, h, w)
                 input_tensor = input_tensor.to(device).float()
 
-                fmap, outputs = model(input_tensor)
-                probs = torch.softmax(outputs, dim=1)
+            #     fmap, outputs = model(input_tensor)
+            #     probs = torch.softmax(outputs, dim=1)
+            #     frame_probs.append(probs[0].cpu().numpy())  # [fake_prob, real_prob]
+            #     _, predicted = torch.max(outputs, 1)
+
+            #     frame_preds.append(predicted.item())
+                fmap, output_bin, output_method = model(input_tensor)
+
+                probs = torch.softmax(output_bin, dim=1)
                 frame_probs.append(probs[0].cpu().numpy())  # [fake_prob, real_prob]
-                _, predicted = torch.max(outputs, 1)
+
+                _, predicted_bin = torch.max(output_bin, 1)
+                _, predicted_method = torch.max(output_method, 1)
+
+                # 추가: threshold 기반 unknown 분류 처리
+                method_probs = torch.softmax(output_method.squeeze(0), dim=0)
+                method_confidence, method_class = torch.max(method_probs, dim=0)
+                threshold = 0.5  # ← 원하는 값으로 조절
+
+                if method_confidence < threshold:
+                    predicted_method = torch.tensor([6])  # unknown class
+                else:
+                    predicted_method = method_class.unsqueeze(0)  # 그대로 유지
 
 
-                frame_preds.append(predicted.item())
+                score = torch.softmax(output_bin.squeeze(0), dim=0)[1].item()  # Real 확률만
+                frame_scores.append(score)
 
+                frame_preds.append(predicted_bin.item())
+                method_preds.append(predicted_method.item())
+
+                # ✅ feature 및 확률 저장 (추가된 부분)
+                # output_bin_all.append(output_bin.squeeze(0).detach().cpu())
+                # pooled_feature = torch.mean(fmap.view(fmap.size(0), fmap.size(1), -1), dim=2)
+                # feature_array.append(pooled_feature.squeeze(0).detach().cpu().numpy())
+                # pooled = torch.mean(fmap.view(fmap.size(0), fmap.size(1), -1), dim=2)
+                # pooled_features_per_video.append(pooled.squeeze(0).detach().cpu().numpy())
             success, frame = cap.read()
 
+        # if frame_scores:
+        #     video_bin_scores.append(np.mean(frame_scores))
+
         cap.release()
+
+        method_dict = {0: 'original', 1: 'Deepfakes', 2: 'FaceShifter', 3: 'FaceSwap', 4: 'NeuralTextures', 5: 'Face2Face', 6: 'others'}
+
+        # 두개의 예측
+        final_prediction = 'Unknown' if len(frame_preds) == 0 else ('REAL' if round(sum(frame_preds)/len(frame_preds)) == 1 else 'FAKE')
+        majority_method = max(set(method_preds), key=method_preds.count) if method_preds else 6
+        # method_pred_list.append(majority_method)
+        
+
+        print("Final Prediction : ",final_prediction)
+        print("Method Predictin : ",majority_method)
 
         # 비디오 하나에 대한 최종 예측
         frame_probs = np.array(frame_probs)
         if len(frame_preds) == 0:
             final_prediction = 'Unknown'
             final_probability = 0.0
+            majority_method='Unknown'
         else:
             avg_probs = np.mean(frame_probs, axis=0)  # [mean_fake, mean_real]
             majority = round(sum(frame_preds) / len(frame_preds))  # 다수결
-            print(sum(frame_preds),"here!!!!!",len(frame_preds))
+            print(sum(frame_preds),"here!!!!!",len(frame_preds)) # 진짜라고 판단한 개수
             final_prediction = 'REAL' if majority == 1 else 'FAKE'
             final_probability = avg_probs[1] if final_prediction == 'REAL' else avg_probs[0]
+            majority_method=method_dict[majority_method]
+
 
         result={
             'Filename': os.path.basename(video_path),
             'Filepath': video_path,
             'Prediction': final_prediction,
-            'Probability': f"{final_probability * 100:.2f}"
+            'Probability': f"{final_probability * 100:.2f}",
+            'Method': majority_method
         }
 
     return result

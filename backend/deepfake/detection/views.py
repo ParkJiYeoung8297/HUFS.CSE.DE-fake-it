@@ -42,12 +42,16 @@ def upload_video(request):
         final_result = None  # 초기화
         print(result["Prediction"])
         print(result["Probability"])
-        if result["Prediction"]=="FAKE":
+        print(result["Method"])
+        # if result["Prediction"]=="FAKE":
+        if result["Prediction"]!="Unknown":
             try:
-                response_txt,grad_cam_path,output_dir_box=all_calculate_roi_scores(output_path,uploaded_file.name,checkpoint_name='checkpoint_1')
+                # response_txt,grad_cam_path,output_dir_box=all_calculate_roi_scores(output_path,uploaded_file.name,checkpoint_name='checkpoint_1')
+                response_txt,table_data=all_calculate_roi_scores(output_path,uploaded_file.name,result)
 
             except Exception as e:
                 return JsonResponse({"error": "Grad_cam failed", "detail": str(e)}, status=500)
+            
 
         # 저장 완료 후 파일 URL 반환
         return JsonResponse({
@@ -56,8 +60,9 @@ def upload_video(request):
             "probability": result["Probability"],
             "grad_cam_video_url": f"/media/preprocessed_{filename}/converted_grad_cam_on_original.mp4",
             "output_box_video_url": f"/media/preprocessed_{filename}/converted_output_box_on_original.mp4",
-            "explanations": response_txt
-            # "final_result":final_result  #직렬화 필요함
+            "explanations": response_txt,
+            # # "final_result":final_result  #직렬화 필요함
+            "table_data":table_data
         })
 
     return JsonResponse({"error": "Invalid request"}, status=400)
@@ -91,7 +96,7 @@ def show_video(request):
                 '-strict', 'experimental',
                 '-y',  # 덮어쓰기
                 output_path
-            ], check=True)
+            ], check=True,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             print(f"✅ Video converted: {output_path}")
 

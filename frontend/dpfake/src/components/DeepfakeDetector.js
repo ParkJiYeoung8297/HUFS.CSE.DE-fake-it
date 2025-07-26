@@ -14,6 +14,7 @@ export default function DeepfakeDetector() {
     // const [converted_video_url, setConvertedVideo] = useState(null);
     const [originalImage, setOriginalImage] = useState(null);
     const [heatmapImage, setHeatmapImage] = useState(null);
+    const [analysisTableData, setAnalysisTableData] = useState([]);
 
 
     const handleFileChange = async (e) => {
@@ -90,6 +91,7 @@ export default function DeepfakeDetector() {
         // setConvertedVideo(result.converted_video_url);
         setOriginalImage(result.original_frame_url);
         setHeatmapImage(result.heatmap_url);
+        setAnalysisTableData(result.table_data); // ⬅️ 테이블 데이터 저장
         
         navigate("/result", {
         state: {
@@ -98,9 +100,7 @@ export default function DeepfakeDetector() {
           grad_cam_Video: result.grad_cam_video_url,
           output_box_Video: result.output_box_video_url,
           explanations: result.explanations,
-          // convertedVideo: result.converted_video_url,
-          originalImage: result.original_frame_url,
-          heatmapImage: result.heatmap_url,
+          analysisTableHTML: result.table_data,
         },
       });
 

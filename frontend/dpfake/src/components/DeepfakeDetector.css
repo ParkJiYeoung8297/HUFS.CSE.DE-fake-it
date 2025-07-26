@@ -71,7 +71,7 @@
   left: 0;
   right: 0;
   z-index: 1000; /* 다른 요소 위에 표시되도록 */
-  background-color: #0f1116;
+  background-color: #101622;
   padding: 16px 32px;
   color: white;
   display: flex;

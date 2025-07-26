@@ -1,77 +1,245 @@
-/* DeepfakeResult.css */
+/* 전체 페이지 컨테이너 */
 .page-container {
-  min-height: 100vh;
+  padding: 70px 20px 20px;
   background-color: #000;
   color: white;
+  font-family: "Arial", sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 64px 16px;
-  font-family: sans-serif;
+
 }
 
-.title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.video-container {
-  width: 100%;
-  max-width: 768px;
-  margin-bottom: 40px;
+/* ✅ Navbar 스타일 */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* 다른 요소 위에 표시되도록 */
+  /* background-color: #0f1116; */
+  background-color: #101622;
+  padding: 16px 32px;
+  color: white;
   display: flex;
-  flex-direction: row; 
-  gap: 50px;       
-  text-align: center;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.video-player {
-  width: 50%;
-  border: 1px solid #777;
-  border-radius: 8px;
-}
-
-.label-fake {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #f87171;
-  margin-bottom: 12px;
-}
-
-.probability {
-  font-size: 1.125rem;
-  margin-bottom: 24px;
-}
-
-.probability span {
-  font-weight: 600;
-}
-
-.reason-title {
+.navbar-logo {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: bold;
+  cursor: pointer; /* ← 손 모양 커서로 변경 */
+}
+
+.navbar-menu a {
+  margin-left: 24px;
+  color: #ccc;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.navbar-menu a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+ .title {
+  text-align: center;
+  font-size: 40px;
+  margin-top: 40px; /* 기존보다 +20px */
+  border-bottom: 2px solid #444;
+  padding-bottom: 10px;
+
+}
+
+/* 비디오 + 텍스트 전체 감싸는 래퍼 */
+.content-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 48px;
+  margin-top: 20px;
+  max-width: 1200px;
+  width: 100%;
+  flex-wrap: nowrap;
+  padding: 0 40px;      /* 좌우 여백 추가 */
+  box-sizing: border-box;
+}
+
+/* 왼쪽 비디오 영역 */
+.video-column {
+  flex-shrink: 0;
+}
+
+/* 비디오 2개를 가로 정렬 */
+.video-column > div {
+  display: flex;
+  gap: 24px;
+}
+
+/* 비디오 개별 스타일 */
+.video-player {
+  width: 300px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  background-color: black;
+}
+
+/* 오른쪽 텍스트 영역 */
+.text-column {
+  width: 500px;
+  max-height: 600px;
+  overflow-y: auto;
+  line-height: 1.6;
+  font-size: 15px;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+/* 제목 스타일 */
+.reason-title {
+  font-size: 20px;
+  margin-bottom: 12px;
+  font-weight: bold;
+}
+
+/* 설명 텍스트 스타일 */
+.reason-text {
+  white-space: pre-line;
+}
+
+/* 결과 강조 텍스트 */
+.label-fake {
+  text-align: center;
+  color: red;
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+
+.label-real {
+  text-align: center;
+  color: lightgreen;
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+
+.probability-fake {
+  color: red;
+  font-size: 28px;
+}
+
+.probability-real {
+  color: lightgreen;
+  font-size: 28px;
+}
+
+
+/* 분석 테이블 */
+.analysis-table {
+  margin: 5px auto;
+  margin-top: 0px;
+  width:600px;
+  max-width: 600px;
+  background-color: #fff;
+  color: #000;
+  border-radius: 5px;
+  overflow-x: auto;
+  padding: 5px;
+}
+
+/* 테이블 자체 스타일 */
+.analysis-table table {
+  width: 100%;
+  border-collapse: collapse; /* 겹치는 선 제거 */
+}
+
+/* 테이블 헤더 셀 */
+.analysis-table th {
+  background-color: #f8f8f8;
+  padding: 4px 8px;
+  font-weight: bold;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+/* 테이블 일반 셀 */
+.analysis-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  font-size: 14px;
+}
+
+
+/* 마지막 행은 아래 선 제거 */
+.analysis-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 테이블 없을 경우 placeholder */
+.table-placeholder {
+  width: 100%;
+  max-width: 700px;
+  height: 200px;
+  margin: 40px auto;
+  border: 2px dashed #777;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #aaa;
+  font-size: 18px;
+  font-style: italic;
+}
+
+
+/* 🎯 전체 wrapper 안 왼쪽 컬럼 (비디오 + 결과 + 표) */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-right:20px
+}
+
+/* 🎯 비디오 두 개 가로 정렬 */
+.video-row {
+  display: flex;
+  gap: 48px; /* 영상 사이 간격 증가 */
+}
+
+ .text-column {
+  flex: 1;
+  max-width: 600px;
+  text-align: left;
+  line-height: 1.75;
+  font-size: 16px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding: 20px;
+  margin-top: 10px;
+
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;                         /* ✅ 부드러운 모서리 */
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.05); /* ✅ 은은한 그림자 */
+}
+
+/* 📌 설명 제목 */
+.reason-title {
+  font-size: 20px;
+  font-weight: bold;
   margin-bottom: 12px;
 }
 
+/* 📌 설명 본문 */
 .reason-text {
-  color: #ccc;
-  text-align: center;
-  max-width: 1200px;
-  margin-bottom: 32px;
-  font-size: 1.3rem;
+  font-size: 16px;
+  white-space: pre-wrap;
 }
 
-.image-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
-}
-
-.image-stack img {
-  max-width: 400px;
-  border-radius: 6px;
-  width: 100%;
-}

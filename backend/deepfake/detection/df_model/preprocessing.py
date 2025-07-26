@@ -23,7 +23,7 @@ def process_single_video(video_path, output_path, filename):
 
     mtcnn = MTCNN(keep_all=False, device=torch.device('cpu'))
 
-    # 저장용 비디오 객체 (112x112 크기)
+    # 저장용 비디오 객체 (224x224 크기)
     out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'MJPG'), 30, (224,224))
 
     for frame in frame_extract(video_path):
