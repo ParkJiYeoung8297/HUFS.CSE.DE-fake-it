@@ -10,8 +10,7 @@
 Some of the datasets used in this project:
 - [FaceForensics++](https://github.com/ondyari/FaceForensics)
 - [Celeb-DF](https://github.com/yuezunli/celeb-deepfakeforensics)
-- [Deepfake Detection Challenge (DFDC)](https://www.kaggle.com/c/deepfake-detection-challenge/data)
-- DeeperForensics 
+- [DeeperForensics](https://github.com/EndlessSora/DeeperForensics-1.0/tree/master)
 
 ---
 
@@ -67,17 +66,15 @@ The following utilities are helpful in data and label management:
 ## Helpful Links
 
 ### Preprocessed Data
-- [Celeb-DF Fake processed videos]()
-- [Celeb-DF Real processed videos]()
-- [FaceForensics++ Real and Fake]()
-- [DFDC Fake]()
-- [DFDC Real]()
-- [DeeperForensics]()
+- [FaceForensics++ Fake processed videos]()
+- [FaceForensics++ Real processed videos](https://drive.google.com/file/d/1GtuEiGhtL0nIC0Y6d0rBv-QtRfwSaAC6/view?usp=drive_link)
+- [Celeb-DF Fake processed videos](https://drive.google.com/file/d/1tgfoaf2LV48ziNFqpXH7nm1USW1hfPUC/view?usp=drive_link)
+- [Celeb-DF Real processed videos](https://drive.google.com/file/d/1Rlipbby2MXGWFaoay6th6lSDXMzu5Bg8/view?usp=drive_link)
 
 **Note:** Labels for all preprocessed data are provided under `~~~`.
 
 ### Trained Models
-- [Download trained models]()
+- [Download trained models](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view?usp=sharing)
 
 ---
 
