@@ -11,7 +11,7 @@ export default function DeepfakeResult() {
     output_box_Video,
     explanations,
     analysisTableHTML,
-  } = location.state;
+  } = location.state;  
 
   return (
     <div className="page-container">
@@ -66,7 +66,7 @@ export default function DeepfakeResult() {
                   <td>{row.region}</td>
                   <td>{row.first_count}</td>
                   <td>{row.second_count}</td>
-                  <td>{row.confidence}</td>
+                  <td>{row.region === "None" ? "-" : row.confidence}</td>
                 </tr>
               ))}
             </tbody>

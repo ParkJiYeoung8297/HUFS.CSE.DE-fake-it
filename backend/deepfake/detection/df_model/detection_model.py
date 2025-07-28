@@ -44,31 +44,11 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
                             [0.229, 0.224, 0.225])
     ])
 
-
-    # # 결과 저장 리스트
-    # results = []
-    # label_list = []
-    # folder_path_list=[]
-    # frame_probs = []
-
-    # # ✅ 결과 저장 리스트 초기화
-    # method_pred_list = []  # ROC Curve 용
-    # video_bin_scores = []   # t-SNE 시각화용
-
-    # # ✅ 결과 저장 리스트 초기화
-    # results = []
-    # label_list = []
-    # folder_path_list = []
-    # method_list = []
-    # # video_feature_array = []
-
     frame_probs = []
 
 
     with torch.no_grad():
         cap = cv2.VideoCapture(video_path)
-        # frame_preds = []
-        # frame_idx = 0
         frame_preds = []
         method_preds=[]
         pooled_features_per_video = []
@@ -84,13 +64,6 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
                 input_tensor = transform(frame)
                 input_tensor = input_tensor.unsqueeze(0).unsqueeze(0)  # (batch=1, seq_len=1, c=3, h, w)
                 input_tensor = input_tensor.to(device).float()
-
-            #     fmap, outputs = model(input_tensor)
-            #     probs = torch.softmax(outputs, dim=1)
-            #     frame_probs.append(probs[0].cpu().numpy())  # [fake_prob, real_prob]
-            #     _, predicted = torch.max(outputs, 1)
-
-            #     frame_preds.append(predicted.item())
                 fmap, output_bin, output_method = model(input_tensor)
 
                 probs = torch.softmax(output_bin, dim=1)
@@ -116,16 +89,7 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
                 frame_preds.append(predicted_bin.item())
                 method_preds.append(predicted_method.item())
 
-                # ✅ feature 및 확률 저장 (추가된 부분)
-                # output_bin_all.append(output_bin.squeeze(0).detach().cpu())
-                # pooled_feature = torch.mean(fmap.view(fmap.size(0), fmap.size(1), -1), dim=2)
-                # feature_array.append(pooled_feature.squeeze(0).detach().cpu().numpy())
-                # pooled = torch.mean(fmap.view(fmap.size(0), fmap.size(1), -1), dim=2)
-                # pooled_features_per_video.append(pooled.squeeze(0).detach().cpu().numpy())
             success, frame = cap.read()
-
-        # if frame_scores:
-        #     video_bin_scores.append(np.mean(frame_scores))
 
         cap.release()
 
@@ -134,9 +98,7 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
         # 두개의 예측
         final_prediction = 'Unknown' if len(frame_preds) == 0 else ('REAL' if round(sum(frame_preds)/len(frame_preds)) == 1 else 'FAKE')
         majority_method = max(set(method_preds), key=method_preds.count) if method_preds else 6
-        # method_pred_list.append(majority_method)
         
-
         print("Final Prediction : ",final_prediction)
         print("Method Predictin : ",majority_method)
 

@@ -40,10 +40,13 @@ HUFS.CSE.DE-fake-it/
 
 
 ## 4. Demo 
-### You can watch the [youtube video](링크수정) for demo
+### You can watch the [youtube video](https://youtu.be/ZVpRHxDxAwg) for demo
 
-<p align="center">
-  <img src="" />
+<p align="left">
+  <a href="https://youtu.be/ZVpRHxDxAwg" target="_blank">
+    <img width="800" height="450" alt="Image" src="https://github.com/user-attachments/assets/1cd50533-59d5-4018-892a-423e04da4272 " />
+<!--     <img alt="image" src="https://github.com/user-attachments/assets/11470e5f-ce2d-44a8-a7f6-ab512b4bb2d9" width="60% height="60%" /> -->
+  </a>
 </p>
 
 

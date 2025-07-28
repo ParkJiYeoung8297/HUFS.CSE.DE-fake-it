@@ -123,7 +123,7 @@ def analyze_roi_activation(video_dir,file_name, result,model):
 
 #   for video_path in tqdm(video_paths):
 
-    facial_region=['jawline', 'left_eye', 'right_eye', 'left_eye_brow', 'right_eye_brow', 'nose', 'mouth','None']
+    facial_region=['Jawline', 'Left Eye', 'Right Eye', 'Left Eyebrow', 'Right Eyebrow', 'Nose', 'Mouth','None']
     first_detection_count = {key: 0 for key in facial_region}
     second_detection_count = {key: 0 for key in facial_region}
     detection_probabillity={key: 0.0 for key in facial_region}
@@ -166,13 +166,13 @@ def analyze_roi_activation(video_dir,file_name, result,model):
 
         # ROI BBoxes
         bbox_map = {
-            'jawline': get_bbox(lm[0:17]),
-            'left_eye': get_bbox(lm[36:42]),
-            'right_eye': get_bbox(lm[42:48]),
-            'left_eye_brow': get_bbox(lm[17:22]),
-            'right_eye_brow': get_bbox(lm[22:27]),
-            'nose': get_bbox(lm[27:36]),
-            'mouth': get_bbox(lm[48:68]),
+            'Jawline': get_bbox(lm[0:17]),
+            'Left Eye': get_bbox(lm[36:42]),
+            'Right Eye': get_bbox(lm[42:48]),
+            'Left Eyebrow': get_bbox(lm[17:22]),
+            'Right Eyebrow': get_bbox(lm[22:27]),
+            'Nose': get_bbox(lm[27:36]),
+            'Mouth': get_bbox(lm[48:68]),
         }
 
         # Grad-CAM
@@ -197,13 +197,13 @@ def analyze_roi_activation(video_dir,file_name, result,model):
         overlay_with_box = overlay.copy()
 
         # 3️⃣ 박스 그리기
-        if scores[first_activated_region] > 0:
+        if scores[first_activated_region] > 0.2:
             cv2.rectangle(frame_with_box, (f_x1, f_y1), (f_x2, f_y2), (0, 255, 0), 2)
             cv2.rectangle(overlay_with_box, (f_x1, f_y1), (f_x2, f_y2), (0, 255, 0), 2)
         else:
             first_activated_region="None"
 
-        if scores[second_activated_region] > 0:
+        if scores[second_activated_region] > 0.2:
             cv2.rectangle(frame_with_box, (s_x1, s_y1), (s_x2, s_y2), (255, 0, 0), 2)
             cv2.rectangle(overlay_with_box, (s_x1, s_y1), (s_x2, s_y2), (255, 0, 0), 2)
         else:
@@ -354,14 +354,11 @@ def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkp
     def format_prompt(summary):
         print(f"summary: {summary}")
         prompt = (
-            f" 아래에 제공된 데이터를 기반으로 모델이 해당 영상을 REAL 또는 FAKE로 판단한 근거를 쉽게 이해할 수 있도록 설명해 주세요."
-            f"응답은 분석 내용만 포함하고, 다음 형식처럼 번호를 붙여주세요:\n"
-            f"1. ...\n2. ...\n3. ...\n"
             f"모델 예측 결과:이 모델은 REAL/FAKE 판단에서 {summary['binary_pred']}로 예측했으며, 확률은 {summary['cam_score']}입니다. 딥페이크 기법 분류 결과: {summary['method_pred']}"
-            f"참고 : original은 위조 흔적이 없는 원본 영상, others는 FaceForensics++의 5가지 기법 외의 위조 방식입니다."
-            f"아래는 영상 {summary['video_name']}에 대한 Grad-CAM 기반 ROI 활성도 분석 요약입니다."
+            f"참고 : original은 위조 흔적이 없는 원본 영상, others는 FaceForensics++의 5가지 기법 외의 위조 방식입니다. "
+            f"아래는 영상 {summary['video_name']}에 대한 Grad-CAM 기반 ROI 활성도 통계 데이터입니다."
 
-            f"분석 데이터 설명 (모든 값은 영상 전체 프레임을 통합한 통계 기반입니다):\n"
+            f"통계 데이터 설명 (모든 값은 영상 전체 프레임을 통합한 통계 기반입니다):\n"
             f" - 가짜에 영향을 주는 부분을 grad-cam으로 시각화하여, 영상 내에 모든 프레임을 통합한 값입니다.\n"
             f" 1. [Facial Regions 분석 대상]: 분석에 사용된 얼굴 부위는 다음과 같습니다: {', '.join(summary['facial_region'])}. ('None'은 REAL로 판단되어 Grad-CAM이 그려지지 않은 경우입니다.)\n\n"
             f" 2. [1순위 활성화 횟수 (First Detection Count)]: 각 부위가 Grad-CAM에서 1순위로 가장 활성화된 프레임 수입니다.\n"
@@ -386,17 +383,21 @@ def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkp
                 f" {summary['detection_probability']}\n\n"
             )
             prompt += (
-                "모델 결과가 FAKE로 판단된 경우, 딥페이크 기법 분류 결과와 위의 정보를 참고하여 어떤 얼굴 부위가 어떻게 작용했는지를 중심으로 분석하고, "
+                "모델 결과가 FAKE로 판단된 경우, 모델 예측 결과와 위의 정보를 참고하여 어떤 얼굴 부위가 어떻게 작용했는지를 중심으로 분석하고, "
                 "중요도가 높은 분석 내용을 선별하여 독자가 납득할 수 있도록 구체적으로 서술해 주세요.\n"
                 "모델 결과가 FAKE로 판단된 경우에는 Grad-CAM 분석이 매우 중요하며, 특정 얼굴 부위들이 어떻게 활성화되었는지를 분석해 주세요.\n"
+                f"영상에 사용된 딥페이크 기법은 {summary['method_pred']}로 예측되었다고 꼭 언급해주세요"
+                "응답은 분석 내용만 포함하고, 다음 형식처럼 번호를 붙여주세요:\n"
+                "1. ...\n2. ...\n3. ...\n"
         )
 
         # REAL 판단에 대한 분석
         elif summary['binary_pred'] == 'REAL':
             prompt += (
-            "모델 결과가 REAL로 판단된 경우, None의 detection_count 값을 참고하여 분석하고, 중요도가 높은 분석 내용을 선별하여 독자가 납득할 수 있도록 구체적으로 서술해 주세요.\n"
+            "모델 결과가 REAL로 판단된 경우, None의 detection_count 값과 위의 정보를 참고하여 분석하고, 중요도가 높은 분석 내용을 선별하여 독자가 납득할 수 있도록 구체적으로 서술해 주세요.\n"
             "REAL로 판단된 경우, 얼굴 부위별 감지 횟수가 적고 'None'의 횟수가 대부분이기 때문에 REAL로 판단되었습니다. "
-            "Grad-CAM이 그려지지 않거나, 활성화가 적어, 모델이 실제 영상이라고 예측한 이유를 명확히 할 수 있습니다. \n"
+            "응답은 분석 내용만 포함하고, 다음 형식처럼 번호를 붙여주세요:\n"
+            "1. ...\n2. ...\n3. ...\n"
         )
 
 

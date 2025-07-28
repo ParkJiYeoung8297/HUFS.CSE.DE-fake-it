@@ -15,6 +15,7 @@ export default function DeepfakeDetector() {
     const [originalImage, setOriginalImage] = useState(null);
     const [heatmapImage, setHeatmapImage] = useState(null);
     const [analysisTableData, setAnalysisTableData] = useState([]);
+    const [isAnalyzing, setIsAnalyzing] = useState(false); // 🆕 업로드 이후 분석용 로딩
 
 
     const handleFileChange = async (e) => {
@@ -23,7 +24,7 @@ export default function DeepfakeDetector() {
         setVideoFile(file);
 
         console.log("Uploaded video:", file);
-
+        setIsAnalyzing(false); 
         setIsUploading(true); // 🔄 로딩 시작
 
         const formData = new FormData();
@@ -75,6 +76,8 @@ export default function DeepfakeDetector() {
         return;
       }
 
+        setIsAnalyzing(true); // ✅ 분석 시작
+
       const formData = new FormData();
       formData.append("video", videoFile);
 
@@ -107,8 +110,11 @@ export default function DeepfakeDetector() {
       } catch (error) {
         console.error("Upload failed:", error);
         alert("Video upload failed.");
-      }
-    };
+      
+      } finally {
+    setIsAnalyzing(false); // ✅ 분석 끝
+    }
+  };
 
 
 
@@ -133,7 +139,7 @@ export default function DeepfakeDetector() {
 
       <div className="upload-box">
         <div className="upload-result" style={{ marginTop: "20px" }}>
-          {isUploading && <p>⏳ 영상 처리 중입니다. 잠시만 기다려주세요...</p>}
+          {isUploading && <p>⏳ Processing video...</p>}
 
           {!isUploading && convertedVideo && (
             <video controls width="100%" src={convertedVideo} />
@@ -169,6 +175,14 @@ export default function DeepfakeDetector() {
       <button className="upload-btn" onClick={handleUploadToServer}>
         Start Deepfake detection
       </button>
+
+      {isAnalyzing && (
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p className="loading-text">⏳ Analyzing your video for deepfakes. Please wait...</p>
+        </div>
+      )}
+
 
       <h2 className="probability">Deepfake Probability: 89%</h2>
 
