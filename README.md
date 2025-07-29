@@ -34,8 +34,9 @@ HUFS.CSE.DE-fake-it/
 
 ## 3. System Architecture
 <p align="center">
-  <img src="(링크수정)" width="600"/>
+  <img width="90%" height="90%" alt="image" src="https://github.com/user-attachments/assets/f6e52dca-49c4-4186-96da-01f65f8938f7" />
 </p>
+
 
 
 
@@ -44,10 +45,12 @@ HUFS.CSE.DE-fake-it/
 
 <p align="left">
   <a href="https://youtu.be/ZVpRHxDxAwg" target="_blank">
-    <img width="800" height="450" alt="Image" src="https://github.com/user-attachments/assets/1cd50533-59d5-4018-892a-423e04da4272 " />
-<!--     <img alt="image" src="https://github.com/user-attachments/assets/11470e5f-ce2d-44a8-a7f6-ab512b4bb2d9" width="60% height="60%" /> -->
+    <img width="800" height="450" src="https://github.com/user-attachments/assets/f4037891-c935-411f-a0e9-9f7865603690" />
   </a>
 </p>
+
+
+
 
 
 ## 5. Our Results
@@ -68,8 +71,19 @@ HUFS.CSE.DE-fake-it/
 | Xception            | 0.93     | 0.80     | 0.80            | 0.80         |
 | **EfficientNet-b0** | **0.94** | **0.81** | **0.82**        | **0.81**     |
 
+- XAI + ROI Activation
 
+<p align="left">
+  <img width="63%" height="63%" alt="image" src="https://github.com/user-attachments/assets/edd9c9b5-e3a1-45b5-925f-ffe29d8f76ca" />
+</p>
 
+- LLM Explanation
+
+<p align="left">
+  <img width="63%" height="63%" alt="image" src="https://github.com/user-attachments/assets/6a77534f-236b-4864-8b93-6742ddb7fd39" />
+</p>
+  
+  
 
 ## 6. Explainability Pipeline
 
