@@ -33,12 +33,10 @@ HUFS.CSE.DE-fake-it/
 
 
 ## 3. System Architecture
+
 <p align="center">
-  <img width="90%" height="90%" alt="image" src="https://github.com/user-attachments/assets/f6e52dca-49c4-4186-96da-01f65f8938f7" />
+  <img width="100%" height="100%" alt="image" src="https://github.com/user-attachments/assets/66172714-2e21-4484-a696-c058a9b3ad72" />
 </p>
-
-
-
 
 ## 4. Demo 
 ### You can watch the [youtube video](https://youtu.be/ZVpRHxDxAwg) for demo
