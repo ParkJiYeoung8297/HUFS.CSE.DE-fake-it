@@ -127,8 +127,8 @@ HUFS.CSE.DE-fake-it/
       </a>
     </td>
     <td align="center">
-      <a href="https://github.com/username3">
-        <img src="https://github.com/username3.png" width="100px;" alt="username3"/>
+      <a href="https://github.com/huiryeong">
+        <img src="https://github.com/huiryeong.png" width="100px;" alt="qkrgmlfud"/>
         <br />
         <sub><b>Park Hui Ryeong</b></sub>
       </a>
