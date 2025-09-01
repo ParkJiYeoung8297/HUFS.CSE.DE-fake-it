@@ -73,13 +73,13 @@ HUFS.CSE.DE-fake-it/
 - XAI + ROI Activation
 
 <p align="left">
-  <img width="63%" height="63%" alt="image" src="https://github.com/user-attachments/assets/edd9c9b5-e3a1-45b5-925f-ffe29d8f76ca" />
+  <img width="80%" height="80%" alt="image" src="https://github.com/user-attachments/assets/edd9c9b5-e3a1-45b5-925f-ffe29d8f76ca" />
 </p>
 
 - LLM Explanation
 
 <p align="left">
-  <img width="63%" height="63%" alt="image" src="https://github.com/user-attachments/assets/6a77534f-236b-4864-8b93-6742ddb7fd39" />
+  <img width="80%" height="80%" alt="image" src="https://github.com/user-attachments/assets/6a77534f-236b-4864-8b93-6742ddb7fd39" />
 </p>
   
   
