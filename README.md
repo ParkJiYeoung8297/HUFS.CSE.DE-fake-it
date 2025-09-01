@@ -113,8 +113,8 @@ HUFS.CSE.DE-fake-it/
       </a>
     </td>
     <td align="center">
-      <a href="https://github.com/username2">
-        <img src="https://github.com/username2.png" width="100px;" alt="username2"/>
+      <a href="https://github.com/sercanyesilkoy">
+        <img src="https://github.com/sercanyesilkoy.png" width="100px;" alt="username2"/>
         <br />
         <sub><b>Sercan Yeşilköy</b></sub>
       </a>
