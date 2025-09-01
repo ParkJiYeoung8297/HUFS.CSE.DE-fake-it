@@ -120,7 +120,7 @@ HUFS.CSE.DE-fake-it/
       </a>
     </td>
     <td align="center">
-      <a href="https://github.com/username3">
+      <a href="https://github.com/dylim-326">
         <img src="https://github.com/username3.png" width="100px;" alt="username3"/>
         <br />
         <sub><b>Lim Do Yeon</b></sub>
