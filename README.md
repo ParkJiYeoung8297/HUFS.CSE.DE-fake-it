@@ -97,7 +97,7 @@ HUFS.CSE.DE-fake-it/
 - `validate_video.py`: Removes corrupted or too-short videos
 - `cut_frame.py`: Extracts the first 150 frames and saves them as MJPEG
 - `make_meta_data.py`: Automatically generates labels and metadata
-- `Grad_CAM_and_ROI.ipynb`: Generates CAM visualizations and ROI-based visual/textual explanations
+- `Grad_CAM_and_ROI.ipynb`: Generates CAM visualizations and ROI-based visual/textual explanations.
 
 
 
