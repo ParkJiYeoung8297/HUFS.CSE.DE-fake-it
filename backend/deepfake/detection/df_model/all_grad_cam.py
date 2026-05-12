@@ -16,6 +16,7 @@ import subprocess
 import cv2
 import json
 import requests
+import time
 from .model import Model
 
 checkpoint_path=Path(__file__).resolve().parent
@@ -297,12 +298,13 @@ def analyze_roi_activation(video_dir,file_name, result,model):
 
 
 def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkpoint_v35',selected_model='EfficientNet-b0'):
-    print("여기요1")
+    timings = {}
     # 모델 구조를 정의
     model = Model(num_binary_classes=2, num_method_classes=7, model_name=selected_model).to(device)
     model.load_state_dict(torch.load(f'{checkpoint_path}/{checkpoint_name}.pt', map_location=device))
     model.eval()
 
+    grad_cam_start_time = time.perf_counter()
     roi_analyze_result,table_data=analyze_roi_activation(video_path,file_name,result, model)
 
     # 이미 저장된 원본 영상 경로
@@ -348,6 +350,7 @@ def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkp
         print(f"✅ Video converted: {output_path}")
     except subprocess.CalledProcessError as e:
         print(f"Error occurred during conversion: {e}")
+    timings['grad_cam'] = time.perf_counter() - grad_cam_start_time
 
 
 #여기부터
@@ -434,7 +437,10 @@ def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkp
         else:
             print("요청 실패:", response.status_code)
 
-    print("프롬프트 내용 : ",format_prompt(roi_analyze_result))
-    response_txt=query_model(format_prompt(roi_analyze_result))
-    return response_txt, table_data
+    prompt = format_prompt(roi_analyze_result)
+    print("프롬프트 내용 : ", prompt)
+    llm_start_time = time.perf_counter()
+    response_txt=query_model(prompt)
+    timings['llm'] = time.perf_counter() - llm_start_time
+    return response_txt, table_data, timings
 

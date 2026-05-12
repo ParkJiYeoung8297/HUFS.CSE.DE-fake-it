@@ -2,6 +2,7 @@ from django.shortcuts import render
 import os
 import uuid
 import subprocess
+import time
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -12,9 +13,30 @@ from .df_model.detection_model import run_detection_model
 from .df_model.all_grad_cam import all_calculate_roi_scores
 
 
+def measure_elapsed(label, timings, func, *args, **kwargs):
+    start_time = time.perf_counter()
+    result = func(*args, **kwargs)
+    timings[label] = time.perf_counter() - start_time
+    return result
+
+
+def print_timing_summary(timings):
+    print("\n===== Processing Time Summary =====")
+    print(f"Average preprocessing time/video: {timings.get('preprocessing', 0.0):.2f} sec")
+    print(f"Average inference time/video: {timings.get('inference', 0.0):.2f} sec")
+    print(f"Grad-CAM generation time: {timings.get('grad_cam', 0.0):.2f} sec")
+    print(f"LLM explanation generation time: {timings.get('llm', 0.0):.2f} sec")
+    print(f"Total processing time/video: {timings.get('total', 0.0):.2f} sec")
+    print("===================================\n")
+
+
 @csrf_exempt
 def upload_video(request):
     if request.method == 'POST' and request.FILES.get('video'):
+        total_start_time = time.perf_counter()
+        timings = {}
+        response_txt = ""
+        table_data = []
         uploaded_file = request.FILES['video']
         print(f"📥 Received file: {uploaded_file.name}")
 
@@ -29,13 +51,20 @@ def upload_video(request):
 
         # 1. ✅ 전처리 수행
         try:
-            preprocessed_path = process_single_video(save_path,output_path,uploaded_file.name)  # 전처리 함수 호출
+            preprocessed_path = measure_elapsed(
+                'preprocessing',
+                timings,
+                process_single_video,
+                save_path,
+                output_path,
+                uploaded_file.name
+            )  # 전처리 함수 호출
         except Exception as e:
             return JsonResponse({"error": "Preprocessing failed", "detail": str(e)}, status=500)
 
         # 2. ✅ 탐지 모델
         try:
-            result =  run_detection_model(preprocessed_path)
+            result = measure_elapsed('inference', timings, run_detection_model, preprocessed_path)
         except Exception as e:
             return JsonResponse({"error": "Detection failed", "detail": str(e)}, status=500)
         # 3. ✅ Grad_cam
@@ -47,11 +76,14 @@ def upload_video(request):
         if result["Prediction"]!="Unknown":
             try:
                 # response_txt,grad_cam_path,output_dir_box=all_calculate_roi_scores(output_path,uploaded_file.name,checkpoint_name='checkpoint_1')
-                response_txt,table_data=all_calculate_roi_scores(output_path,uploaded_file.name,result)
+                response_txt,table_data,roi_timings=all_calculate_roi_scores(output_path,uploaded_file.name,result)
+                timings.update(roi_timings)
 
             except Exception as e:
                 return JsonResponse({"error": "Grad_cam failed", "detail": str(e)}, status=500)
-            
+
+        timings['total'] = time.perf_counter() - total_start_time
+        print_timing_summary(timings)
 
         # 저장 완료 후 파일 URL 반환
         return JsonResponse({
