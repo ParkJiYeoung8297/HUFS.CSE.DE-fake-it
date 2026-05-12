@@ -1,17 +1,9 @@
-#Model with feature visualization
+# Model with feature visualization
 from pathlib import Path
-from django.conf import settings
-import sys
 import cv2
 import torch
-from torch import nn
-from torchvision import models
 from torchvision import transforms
-import matplotlib.pyplot as plt
 import os
-import pandas as pd
-import glob
-import random
 import numpy as np
 from .model import Model
 

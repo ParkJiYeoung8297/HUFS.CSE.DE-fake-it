@@ -202,7 +202,7 @@ export default function DeepfakeDetector() {
       <div className="about-section" id="about" >
         <h2>About Us</h2>
         <p>
-          We build AI tools that help people detect manipulated content and raise awareness about media trustworthiness.
+          We developed this platform to reduce the social risks caused by deepfake content and to provide users reliable, explainable deepfake detection results. By analyzing facial information in videos, the system determines whether a video is REAL or FAKE, offering both visual explanations through Grad-CAM and natural language resoning via a Large Language MoDel(LLM). We focus on technical accurancy and interpretability, and our intuitive interface makes it easy for users to understand and utilize detection results. This platform is a reliable and accessible deepfake detection solution, aiming to become a tool for a safer digital environment.
         </p>
       </div>
     </div>
