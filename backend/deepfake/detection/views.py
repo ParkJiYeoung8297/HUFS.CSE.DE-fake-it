@@ -10,7 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .services.uploads import save_uploaded_file
 from .services.preprocessing import run_preprocessing
 from .services.inference import run_inference
-from .services.explainability import run_explainability
+from .services.explainability import run_gradcam, run_llm
+from .utils.performance import PerformanceLogger
 
 
 def measure_elapsed(label, timings, func, *args, **kwargs):
@@ -37,29 +38,44 @@ def upload_video(request):
         timings = {}
 
         uploaded_file = request.FILES['video']
+        performance_logger = PerformanceLogger(
+            uploaded_file.name,
+            getattr(uploaded_file, "size", None)
+        )
 
         try:
-            filename, save_path = save_uploaded_file(uploaded_file)
-            output_path = os.path.join(settings.MEDIA_ROOT,f"preprocessed_{filename}")
-            preprocessed_path = run_preprocessing(save_path, output_path,uploaded_file.name,timings)
+            with performance_logger.step("total"):
+                with performance_logger.step("file_save"):
+                    filename, save_path = save_uploaded_file(uploaded_file)
+                    performance_logger.set_video_path(save_path)
 
-            result = run_inference(preprocessed_path,timings)
+                output_path = os.path.join(settings.MEDIA_ROOT,f"preprocessed_{filename}")
 
+                with performance_logger.step("preprocessing"):
+                    preprocessed_path = run_preprocessing(save_path, output_path,uploaded_file.name,timings)
 
-            response_txt = ""
-            table_data = []
+                with performance_logger.step("inference"):
+                    result = run_inference(preprocessed_path,timings)
 
-            if result["Prediction"] != "Unknown":
-                response_txt, table_data = run_explainability(
-                    output_path,
-                    uploaded_file.name,
-                    result,
-                    timings
-                )
+                response_txt = ""
+                table_data = []
+
+                if result["Prediction"] != "Unknown":
+                    with performance_logger.step("grad_cam"):
+                        roi_analyze_result, table_data = run_gradcam(
+                            output_path,
+                            uploaded_file.name,
+                            result,
+                            timings
+                        )
+
+                    with performance_logger.step("llm"):
+                        response_txt = run_llm(roi_analyze_result, timings)
 
             timings['total'] = time.perf_counter() - total_start_time
 
             print_timing_summary(timings)
+            performance_logger.save()
 
             # 저장 완료 후 파일 URL 반환
             return JsonResponse({
@@ -72,6 +88,8 @@ def upload_video(request):
                 "table_data":table_data
         })
         except Exception as e:
+            timings['total'] = time.perf_counter() - total_start_time
+            performance_logger.save()
             return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Invalid request"}, status=400)
 
