@@ -6,6 +6,7 @@ from facenet_pytorch import MTCNN
 
 CPU_THREAD_LIMIT = int(os.environ.get("DEFAKE_CPU_THREADS", "4"))
 ROI_METADATA_FILENAME = "roi_metadata.json"
+FRAME_SAMPLE_STRIDE = max(1, int(os.environ.get("DEFAKE_FRAME_SAMPLE_STRIDE", "5")))
 
 torch.set_num_threads(CPU_THREAD_LIMIT)
 try:
@@ -101,12 +102,16 @@ def process_single_video(video_path, output_path, filename):
 
     mtcnn = MTCNN(keep_all=False, device=torch.device('cpu'))
 
+    output_fps = max(1, round(30 / FRAME_SAMPLE_STRIDE))
+
     # 저장용 비디오 객체 (224x224 크기)
-    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'MJPG'), 30, (224,224))
+    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'MJPG'), output_fps, (224,224))
     metadata = {
         "source_video": os.path.basename(video_path),
         "preprocessed_video": filename,
         "output_size": [224, 224],
+        "frame_sample_stride": FRAME_SAMPLE_STRIDE,
+        "output_fps": output_fps,
         "frames": [],
     }
     source_frame_idx = 0
@@ -114,6 +119,9 @@ def process_single_video(video_path, output_path, filename):
 
     for frame in frame_extract(video_path):
         try:
+            if source_frame_idx % FRAME_SAMPLE_STRIDE != 0:
+                continue
+
             # RGB로 변환
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             boxes, _, landmarks = mtcnn.detect(rgb, landmarks=True)
