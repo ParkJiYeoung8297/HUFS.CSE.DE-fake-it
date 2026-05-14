@@ -10,7 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .services.uploads import save_uploaded_file
 from .services.preprocessing import run_preprocessing
 from .services.inference import run_inference
-from .services.explainability import run_gradcam, run_llm
+from .services.explainability import run_gradcam
+from .services.llm import run_llm
 from .utils.performance import PerformanceLogger
 from .df_model.model_cache import preload_cached_models
 

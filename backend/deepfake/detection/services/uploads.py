@@ -16,18 +16,6 @@ def save_uploaded_file(uploaded_file):
 
     return filename, save_path
 
-"""
-        # 고유한 파일명 생성
-        filename = f"{uuid.uuid4().hex}_{uploaded_file.name}"
-        save_path = os.path.join(settings.MEDIA_ROOT, filename)
-        output_path=os.path.join(settings.MEDIA_ROOT, f"preprocessed_{filename}")
-        # 파일 저장
-        with open(save_path, 'wb+') as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
-"""
-
-
 def convert_video(input_path):
     output_filename = f"converted_{uuid.uuid4().hex}.mp4"
     output_path = os.path.join(settings.MEDIA_ROOT, output_filename)

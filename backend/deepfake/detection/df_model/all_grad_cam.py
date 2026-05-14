@@ -6,20 +6,19 @@ import torch.nn.functional as F
 from torchvision import models
 from torch import nn
 import os
+import json
 import glob
 import pandas as pd
-import face_alignment
 from tqdm import tqdm
 from django.conf import settings
 from pathlib import Path
 import subprocess
 import cv2
-import json
-import requests
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 from .model_cache import get_cached_model, get_device
+from .preprocessing import ROI_METADATA_FILENAME
 
 checkpoint_path=Path(__file__).resolve().parent
 
@@ -114,6 +113,8 @@ def get_bbox(pts):
 def roi_activation(cam, bbox):
     x1, y1, x2, y2 = bbox
     patch = cam[y1:y2, x1:x2]
+    if patch.size == 0:
+        return -1
     mean_val = float(patch.mean())
 
     if np.isnan(mean_val):
@@ -139,13 +140,52 @@ def _convert_video(input_path, output_path, delete_source=False):
         print(f"Error occurred during conversion: {e}")
 
 
-def _detect_landmarks(fa, rgb):
-    return fa.get_landmarks(rgb)
-
-
 def _compute_gradcam_for_rgb(model, model_lock, transform, rgb):
     img = transform(rgb).to(device)
     return compute_gradcam_binary(model, img, model_lock=model_lock)
+
+
+def _load_roi_metadata(video_dir):
+    metadata_path = os.path.join(video_dir, ROI_METADATA_FILENAME)
+    if not os.path.exists(metadata_path):
+        print(f"ROI metadata not found: {metadata_path}")
+        return []
+
+    with open(metadata_path, "r", encoding="utf-8") as metadata_file:
+        metadata = json.load(metadata_file)
+
+    return metadata.get("frames", [])
+
+
+def _default_roi_bboxes(width, height):
+    return {
+        "Jawline": [0, int(height * 0.58), width, height],
+        "Left Eye": [int(width * 0.22), int(height * 0.30), int(width * 0.45), int(height * 0.42)],
+        "Right Eye": [int(width * 0.55), int(height * 0.30), int(width * 0.78), int(height * 0.42)],
+        "Left Eyebrow": [int(width * 0.20), int(height * 0.21), int(width * 0.45), int(height * 0.31)],
+        "Right Eyebrow": [int(width * 0.55), int(height * 0.21), int(width * 0.80), int(height * 0.31)],
+        "Nose": [int(width * 0.42), int(height * 0.40), int(width * 0.58), int(height * 0.63)],
+        "Mouth": [int(width * 0.32), int(height * 0.66), int(width * 0.68), int(height * 0.80)],
+    }
+
+
+def _normalize_bbox_map(raw_bbox_map, width, height):
+    if not raw_bbox_map:
+        return _default_roi_bboxes(width, height)
+
+    bbox_map = {}
+    for region, bbox in raw_bbox_map.items():
+        x1, y1, x2, y2 = [int(round(value)) for value in bbox]
+        x1 = max(0, min(width - 1, x1))
+        y1 = max(0, min(height - 1, y1))
+        x2 = max(x1 + 1, min(width, x2))
+        y2 = max(y1 + 1, min(height, y2))
+        bbox_map[region] = (x1, y1, x2, y2)
+
+    for region, bbox in _default_roi_bboxes(width, height).items():
+        bbox_map.setdefault(region, bbox)
+
+    return bbox_map
 
 
 def _write_processed_frame(
@@ -158,24 +198,14 @@ def _write_processed_frame(
     video_writer_cam,
 ):
     frame = pending_item["frame"]
-    landmarks = pending_item["landmarks_future"].result()
     cam, cam_score, binary_pred, method_pred = pending_item["gradcam_future"].result()
 
-    if not landmarks:
-        return False
-
-    lm = landmarks[0]
-    bbox_map = {
-        'Jawline': get_bbox(lm[0:17]),
-        'Left Eye': get_bbox(lm[36:42]),
-        'Right Eye': get_bbox(lm[42:48]),
-        'Left Eyebrow': get_bbox(lm[17:22]),
-        'Right Eyebrow': get_bbox(lm[22:27]),
-        'Nose': get_bbox(lm[27:36]),
-        'Mouth': get_bbox(lm[48:68]),
-    }
-
     cam = cv2.resize(cam, (frame.shape[1], frame.shape[0]))
+    bbox_map = _normalize_bbox_map(
+        pending_item.get("roi_bboxes"),
+        frame.shape[1],
+        frame.shape[0],
+    )
     scores = {region: roi_activation(cam, box) for region, box in bbox_map.items()}
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     first_activated_region = sorted_scores[0][0]
@@ -215,12 +245,8 @@ def _write_processed_frame(
 
 
 def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
-    fa = face_alignment.FaceAlignment(
-        face_alignment.LandmarksType.TWO_D,
-        device=str(device)
-    )
-
     os.makedirs(video_dir, exist_ok=True)
+    roi_metadata_frames = _load_roi_metadata(video_dir)
 
     transform = T.Compose([
         T.ToTensor(),
@@ -255,17 +281,22 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
 
     pending = []
 
-    with ThreadPoolExecutor(max_workers=1) as face_executor, ThreadPoolExecutor(max_workers=1) as gradcam_executor:
+    with ThreadPoolExecutor(max_workers=1) as gradcam_executor:
         while cap.isOpened():
             success, frame = cap.read()
             if not success:
                 break
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            metadata_item = (
+                roi_metadata_frames[frame_idx]
+                if frame_idx < len(roi_metadata_frames)
+                else {}
+            )
             pending.append({
                 "frame_idx": frame_idx,
                 "frame": frame.copy(),
-                "landmarks_future": face_executor.submit(_detect_landmarks, fa, rgb),
+                "roi_bboxes": metadata_item.get("roi_bboxes"),
                 "gradcam_future": gradcam_executor.submit(
                     _compute_gradcam_for_rgb,
                     model,
@@ -359,199 +390,8 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
 
     return roi_analyze_result, table_data
 
-def analyze_roi_activation(video_dir,file_name, result,model):
-
-    fa = face_alignment.FaceAlignment(
-        face_alignment.LandmarksType.TWO_D,
-        device=str(device)
-    )
-
-    os.makedirs(video_dir, exist_ok=True)
-
-    transform = T.Compose([
-        T.ToTensor(),
-        T.Resize((224, 224)),
-        T.Normalize(mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225])
-    ])
-
-    roi_result = []
-    roi_analyze_result={}
-
-    # video_paths = glob.glob(os.path.join(video_path, '*.mp4'))
-
-#   for video_path in tqdm(video_paths):
-
-    facial_region=['Jawline', 'Left Eye', 'Right Eye', 'Left Eyebrow', 'Right Eyebrow', 'Nose', 'Mouth','None']
-    first_detection_count = {key: 0 for key in facial_region}
-    second_detection_count = {key: 0 for key in facial_region}
-    detection_probabillity={key: 0.0 for key in facial_region}
-
-
-    video_path_file_name=os.path.join(video_dir,file_name)
-    cap = cv2.VideoCapture(video_path_file_name)
-    frame_idx = 0
-    # video_name = os.path.splitext(os.path.basename(video_path))[0]
-
-
-    # ▶️ 비디오 저장 설정
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    # 박스만 그린 영상
-    video_writer_box = cv2.VideoWriter(
-        os.path.join(video_dir, "output_box_on_original.mp4"),
-        fourcc, fps, (width, height)
-    )
-
-    # Grad-CAM + 박스 영상
-    video_writer_cam = cv2.VideoWriter(
-        os.path.join(video_dir, f"grad_cam_on_original.mp4"),
-        fourcc, fps, (width, height)
-    )
-
-    while cap.isOpened():
-        success, frame = cap.read()
-        if not success:
-            break
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        landmarks = fa.get_landmarks(rgb)
-        if not landmarks:
-            frame_idx += 1
-            continue
-        lm = landmarks[0]
-
-        # ROI BBoxes
-        bbox_map = {
-            'Jawline': get_bbox(lm[0:17]),
-            'Left Eye': get_bbox(lm[36:42]),
-            'Right Eye': get_bbox(lm[42:48]),
-            'Left Eyebrow': get_bbox(lm[17:22]),
-            'Right Eyebrow': get_bbox(lm[22:27]),
-            'Nose': get_bbox(lm[27:36]),
-            'Mouth': get_bbox(lm[48:68]),
-        }
-
-        # Grad-CAM
-        img = transform(rgb).to(device)
-        cam, cam_score, binary_pred, method_pred = compute_gradcam_binary(model, img)
-        cam = cv2.resize(cam, (frame.shape[1], frame.shape[0]))
-
-        scores = {region: roi_activation(cam, box) for region, box in bbox_map.items()}
-        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        first_activated_region = sorted_scores[0][0]
-        second_activated_region = sorted_scores[1][0]
-
-        f_x1, f_y1, f_x2, f_y2 = bbox_map[first_activated_region]
-        s_x1, s_y1, s_x2, s_y2 = bbox_map[second_activated_region]
-
-        # 1️⃣ Grad-CAM 히트맵 오버레이
-        heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
-        overlay = cv2.addWeighted(frame, 0.6, heatmap, 0.4, 0)
-
-        # 2️⃣ 원본 프레임 복사해서 박스용 준비
-        frame_with_box = frame.copy()
-        overlay_with_box = overlay.copy()
-
-        # 3️⃣ 박스 그리기
-        if scores[first_activated_region] > 0.2:
-            cv2.rectangle(frame_with_box, (f_x1, f_y1), (f_x2, f_y2), (0, 255, 0), 2)
-            cv2.rectangle(overlay_with_box, (f_x1, f_y1), (f_x2, f_y2), (0, 255, 0), 2)
-        else:
-            first_activated_region="None"
-
-        if scores[second_activated_region] > 0.2:
-            cv2.rectangle(frame_with_box, (s_x1, s_y1), (s_x2, s_y2), (255, 0, 0), 2)
-            cv2.rectangle(overlay_with_box, (s_x1, s_y1), (s_x2, s_y2), (255, 0, 0), 2)
-        else:
-            second_activated_region="None"
-
-    #   # 4️⃣ 파일 저장
-        file_id = f"{file_name}_frame{frame_idx:04d}"
-    #   cv2.imwrite(os.path.join(output_dir_box, f"{file_id}_roi.jpg"), frame_with_box)
-    #   cv2.imwrite(os.path.join(output_dir_box, f"{file_id}_gradcam.jpg"), overlay_with_box)
-
-    #  4️⃣ 영상 파일 저장
-        video_writer_box.write(frame_with_box)
-        video_writer_cam.write(overlay_with_box)
-
-        first_detection_count[first_activated_region]+=1
-        second_detection_count[second_activated_region]+=1
-        for key in facial_region:
-            if key!="None" and scores[key]!=-1:
-                detection_probabillity[key]+=cam_score * scores[key]
-
-        roi_result.append({
-            'file_name': file_id,
-            'cam_score': cam_score,
-            'first_activate_region': first_activated_region,
-            'second_activate_region': second_activated_region,
-            'f_x1': f_x1, 'f_y1': f_y1, 'f_x2': f_x2, 'f_y2': f_y2,
-            's_x1': s_x1, 's_y1': s_y1, 's_x2': s_x2, 's_y2': s_y2,
-            **scores,
-        })
-
-        frame_idx += 1
-
-    cap.release()
-    video_writer_box.release()
-    video_writer_cam.release()
-
-    # Printing all the dictionaries
-    first_detection_rate = {key: round((value / frame_idx)*100, 2) for key, value in first_detection_count.items()}
-    second_detection_rate = {key: round((value / frame_idx)*100, 2) for key, value in second_detection_count.items()}
-
-    # 📌 Note: A high proportion of 'None' may inflate the relative Contribution (%) and should be interpreted with caution.
-    raw_detection_probabillity= {key: round(value, 4) for key, value in detection_probabillity.items()}
-    probabillity_total = sum(detection_probabillity.values())
-    detection_probabillity= {key: round((value/probabillity_total)*100, 2) for key, value in detection_probabillity.items()}
-
-    # print("Video name:", file_name)
-    # print("Facial Region:", facial_region)
-    # print("First Detection Count:", first_detection_count)
-    # print("Second Detection Count:", second_detection_count)
-    # print("First Detection Rate:", first_detection_rate)
-    # print("Second Detection Rate:", second_detection_rate)
-    # print("Raw_Detection Probability:", raw_detection_probabillity)
-    # print("Detection Probability:", detection_probabillity)
-
-    roi_analyze_result = {
-    "video_name": file_name,
-    "binary_pred":result["Prediction"], 
-    "cam_score":result["Probability"],
-    "method_pred":result["Method"],
-    "facial_region": facial_region,
-    "first_detection_count": first_detection_count,
-    "second_detection_count": second_detection_count,
-    "first_detection_rate": first_detection_rate,
-    "second_detection_rate": second_detection_rate,
-    "raw_detection_probability": raw_detection_probabillity,
-    "detection_probability": detection_probabillity
-    }
-
-    # 테이블 만들기
-    table_data = []
-    for region in facial_region:
-        row = {
-            "region": region,
-            "first_count": f"{first_detection_count.get(region, '0')} ({first_detection_rate.get(region, '0.00')}%)",
-            "second_count": f"{second_detection_count.get(region, '0')} ({second_detection_rate.get(region, '0.00')}%)",
-            "confidence": "-" if detection_probabillity.get(region) is None else f"{detection_probabillity.get(region, '0.00')}%"
-        }
-        table_data.append(row)
-
-    # 마지막 총합 행 추가
-    table_data.append({
-        "region": "total",
-        "first_count": sum(int(v) for v in first_detection_count.values()),
-        "second_count": sum(int(v) for v in second_detection_count.values()),
-        "confidence": "100.00%"
-    })
-
-
-    return roi_analyze_result,table_data
+def analyze_roi_activation(video_dir, file_name, result, model):
+    return calculate_roi_scores(video_dir, file_name, result, model, _null_context())
 
 
 
@@ -563,86 +403,6 @@ def run_gradcam_roi_analysis(video_path,file_name,result,checkpoint_name='checkp
     )
 
     return calculate_roi_scores(video_path, file_name, result, model, model_lock)
-
-
-def build_llm_prompt(summary):
-    print(f"summary: {summary}")
-    prompt = (
-        f"모델 예측 결과:이 모델은 REAL/FAKE 판단에서 {summary['binary_pred']}로 예측했으며, 확률은 {summary['cam_score']}입니다. 딥페이크 기법 분류 결과: {summary['method_pred']}"
-        f"참고 : original은 위조 흔적이 없는 원본 영상, others는 FaceForensics++의 5가지 기법 외의 위조 방식입니다. "
-        f"아래는 영상 {summary['video_name']}에 대한 Grad-CAM 기반 ROI 활성도 통계 데이터입니다."
-
-        f"통계 데이터 설명 (모든 값은 영상 전체 프레임을 통합한 통계 기반입니다):\n"
-        f" - 가짜에 영향을 주는 부분을 grad-cam으로 시각화하여, 영상 내에 모든 프레임을 통합한 값입니다.\n"
-        f" 1. [Facial Regions 분석 대상]: 분석에 사용된 얼굴 부위는 다음과 같습니다: {', '.join(summary['facial_region'])}. ('None'은 REAL로 판단되어 Grad-CAM이 그려지지 않은 경우입니다.)\n\n"
-        f" 2. [1순위 활성화 횟수 (First Detection Count)]: 각 부위가 Grad-CAM에서 1순위로 가장 활성화된 프레임 수입니다.\n"
-        f" {summary['first_detection_count']}\n\n"
-        f" 3. [2순위 활성화 횟수 (Second Detection Count)]: 각 부위가 2순위로 활성화된 프레임 수입니다.\n"
-        f" {summary['second_detection_count']}\n\n"
-        f" 4. [1순위 활성화 비율 (First Detection Rate)]: 전체 프레임 중 각 부위가 1순위로 선택된 비율입니다 (% 단위).\n"
-        f" {summary['first_detection_rate']}\n\n"
-        f" 5. [2순위 활성화 비율 (Second Detection Rate)]: 전체 프레임 중 각 부위가 2순위로 선택된 비율입니다 (% 단위).\n"
-        f" {summary['second_detection_rate']}\n\n"
-    )
-
-    if summary['binary_pred'] == 'FAKE':
-        prompt += (
-            f" 6. [Raw Detection Probability]: 각 부위에 대해 Grad-CAM의 총 활성 기여도를 raw 점수로 나타낸 값입니다. 각 프레임별에서 (Fake일 확률 × 부위별 ROI 평균 활성도)를 계산하여, 부위별로 모두 더하여 구합니다. \n"
-            f" {summary['raw_detection_probability']}\n\n"
-            f" 7. [Normalized Detection Contribution (%)]: 위의 raw 값들을 전체 합으로 나눠 정규화한 값입니다. 각 부위가 전체 판단에 얼마나 기여했는지 상대적으로 보여줍니다. \n"
-            f" {summary['detection_probability']}\n\n"
-        )
-        prompt += (
-            "모델 결과가 FAKE로 판단된 경우, 모델 예측 결과와 위의 정보를 참고하여 어떤 얼굴 부위가 어떻게 작용했는지를 중심으로 분석하고, "
-            "중요도가 높은 분석 내용을 선별하여 독자가 납득할 수 있도록 구체적으로 서술해 주세요.\n"
-            "모델 결과가 FAKE로 판단된 경우에는 Grad-CAM 분석이 매우 중요하며, 특정 얼굴 부위들이 어떻게 활성화되었는지를 분석해 주세요.\n"
-            f"영상에 사용된 딥페이크 기법은 {summary['method_pred']}로 예측되었다고 꼭 언급해주세요"
-            "응답은 분석 내용만 포함하고, 다음 형식처럼 번호를 붙여주세요:\n"
-            "1. ...\n2. ...\n3. ...\n"
-        )
-    elif summary['binary_pred'] == 'REAL':
-        prompt += (
-            "모델 결과가 REAL로 판단된 경우, None의 detection_count 값과 위의 정보를 참고하여 분석하고, 중요도가 높은 분석 내용을 선별하여 독자가 납득할 수 있도록 구체적으로 서술해 주세요.\n"
-            "REAL로 판단된 경우, 얼굴 부위별 감지 횟수가 적고 'None'의 횟수가 대부분이기 때문에 REAL로 판단되었습니다. "
-            "응답은 분석 내용만 포함하고, 다음 형식처럼 번호를 붙여주세요:\n"
-            "1. ...\n2. ...\n3. ...\n"
-        )
-
-    return prompt
-
-
-def query_llm_model(prompt):
-    url = "http://localhost:11434/api/generate"
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "model": "llama3",
-        "prompt": prompt
-    }
-
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    print("응답 코드 : ", response.status_code)
-    if response.status_code == 200:
-        print("응답 내용:")
-        combined_response = ''
-
-        for line in response.text.splitlines():
-            try:
-                json_line = json.loads(line)
-                combined_response += json_line['response']
-            except json.JSONDecodeError:
-                continue
-
-        print(combined_response)
-        return combined_response
-
-    print("요청 실패:", response.status_code)
-    return ""
-
-
-def run_llm_explanation(roi_analyze_result):
-    prompt = build_llm_prompt(roi_analyze_result)
-    print("프롬프트 내용 : ", prompt)
-    return query_llm_model(prompt)
 
 
 def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkpoint_v35',selected_model='EfficientNet-b0'):
@@ -657,6 +417,8 @@ def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkp
         selected_model
     )
     timings['grad_cam'] = time.perf_counter() - grad_cam_roi_start_time
+
+    from ..services.llm import run_llm_explanation
 
     llm_start_time = time.perf_counter()
     response_txt = run_llm_explanation(roi_analyze_result)

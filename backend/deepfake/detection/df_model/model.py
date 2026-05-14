@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import timm
-from torchvision import models
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 
@@ -9,21 +7,10 @@ class Model(nn.Module):
     def __init__(self, num_binary_classes=2, num_method_classes=7,model_name="EfficientNet-b0", lstm_layers=1 , hidden_dim = 2048, bidirectional = False):
         super(Model, self).__init__()
         self.model_name = model_name
-
-        if self.model_name=="resnext50_32x4d":
-          model = models.resnext50_32x4d(pretrained = True) #Residual Network CNN
-          self.model = nn.Sequential(*list(model.children())[:-2])
-          self.latent_dim = 2048
-        elif self.model_name=="xception":
-          self.latent_dim = 2048 # xception
-          model = timm.create_model('xception', pretrained=True, features_only=False)
-          self.model = nn.Sequential(*list(model.children())[:-2])
-        elif self.model_name=="EfficientNet-b0":
-           self.latent_dim = 1280 # efficient
-           weights = EfficientNet_B0_Weights.DEFAULT
-           model = efficientnet_b0(weights=weights)
-           self.model = nn.Sequential(*list(model.features))
-        print("latet_dim: ",self.latent_dim)
+        self.latent_dim = 1280 # efficient
+        weights = EfficientNet_B0_Weights.DEFAULT
+        model = efficientnet_b0(weights=weights)
+        self.model = nn.Sequential(*list(model.features))
         self.lstm = nn.LSTM(self.latent_dim,hidden_dim, lstm_layers,  bidirectional)
         self.relu = nn.LeakyReLU() 
         self.dp = nn.Dropout(0.5)
