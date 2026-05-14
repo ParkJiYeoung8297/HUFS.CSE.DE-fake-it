@@ -3,6 +3,15 @@ import cv2
 import torch
 from facenet_pytorch import MTCNN
 
+CPU_THREAD_LIMIT = int(os.environ.get("DEFAKE_CPU_THREADS", "4"))
+
+torch.set_num_threads(CPU_THREAD_LIMIT)
+try:
+    torch.set_num_interop_threads(1)
+except RuntimeError:
+    pass
+cv2.setNumThreads(1)
+
 def frame_extract(path):
     cap = cv2.VideoCapture(path)
     while True:
