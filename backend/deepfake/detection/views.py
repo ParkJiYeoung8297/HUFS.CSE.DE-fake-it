@@ -7,10 +7,10 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .df_model.preprocessing import process_single_video
-from .df_model.detection_model import run_detection_model
-# from .df_model.grad_cam import calculate_roi_scores
-from .df_model.all_grad_cam import all_calculate_roi_scores
+from .services.uploads import save_uploaded_file
+from .services.preprocessing import run_preprocessing
+from .services.inference import run_inference
+from .services.explainability import run_explainability
 
 
 def measure_elapsed(label, timings, func, *args, **kwargs):
@@ -35,69 +35,46 @@ def upload_video(request):
     if request.method == 'POST' and request.FILES.get('video'):
         total_start_time = time.perf_counter()
         timings = {}
-        response_txt = ""
-        table_data = []
+
         uploaded_file = request.FILES['video']
-        print(f"📥 Received file: {uploaded_file.name}")
 
-        # 고유한 파일명 생성
-        filename = f"{uuid.uuid4().hex}_{uploaded_file.name}"
-        save_path = os.path.join(settings.MEDIA_ROOT, filename)
-        output_path=os.path.join(settings.MEDIA_ROOT, f"preprocessed_{filename}")
-        # 파일 저장
-        with open(save_path, 'wb+') as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
-
-        # 1. ✅ 전처리 수행
         try:
-            preprocessed_path = measure_elapsed(
-                'preprocessing',
-                timings,
-                process_single_video,
-                save_path,
-                output_path,
-                uploaded_file.name
-            )  # 전처리 함수 호출
-        except Exception as e:
-            return JsonResponse({"error": "Preprocessing failed", "detail": str(e)}, status=500)
+            filename, save_path = save_uploaded_file(uploaded_file)
+            output_path = os.path.join(settings.MEDIA_ROOT,f"preprocessed_{filename}")
+            preprocessed_path = run_preprocessing(save_path, output_path,uploaded_file.name,timings)
 
-        # 2. ✅ 탐지 모델
-        try:
-            result = measure_elapsed('inference', timings, run_detection_model, preprocessed_path)
-        except Exception as e:
-            return JsonResponse({"error": "Detection failed", "detail": str(e)}, status=500)
-        # 3. ✅ Grad_cam
-        final_result = None  # 초기화
-        print(result["Prediction"])
-        print(result["Probability"])
-        print(result["Method"])
-        # if result["Prediction"]=="FAKE":
-        if result["Prediction"]!="Unknown":
-            try:
-                # response_txt,grad_cam_path,output_dir_box=all_calculate_roi_scores(output_path,uploaded_file.name,checkpoint_name='checkpoint_1')
-                response_txt,table_data,roi_timings=all_calculate_roi_scores(output_path,uploaded_file.name,result)
-                timings.update(roi_timings)
+            result = run_inference(preprocessed_path,timings)
 
-            except Exception as e:
-                return JsonResponse({"error": "Grad_cam failed", "detail": str(e)}, status=500)
 
-        timings['total'] = time.perf_counter() - total_start_time
-        print_timing_summary(timings)
+            response_txt = ""
+            table_data = []
 
-        # 저장 완료 후 파일 URL 반환
-        return JsonResponse({
-            "message": "Success",
-            "prediction": result["Prediction"],
-            "probability": result["Probability"],
-            "grad_cam_video_url": f"/media/preprocessed_{filename}/converted_grad_cam_on_original.mp4",
-            "output_box_video_url": f"/media/preprocessed_{filename}/converted_output_box_on_original.mp4",
-            "explanations": response_txt,
-            # # "final_result":final_result  #직렬화 필요함
-            "table_data":table_data
+            if result["Prediction"] != "Unknown":
+                response_txt, table_data = run_explainability(
+                    output_path,
+                    uploaded_file.name,
+                    result,
+                    timings
+                )
+
+            timings['total'] = time.perf_counter() - total_start_time
+
+            print_timing_summary(timings)
+
+            # 저장 완료 후 파일 URL 반환
+            return JsonResponse({
+                "message": "Success",
+                "prediction": result["Prediction"],
+                "probability": result["Probability"],
+                "grad_cam_video_url": f"/media/preprocessed_{filename}/converted_grad_cam_on_original.mp4",
+                "output_box_video_url": f"/media/preprocessed_{filename}/converted_output_box_on_original.mp4",
+                "explanations": response_txt,
+                "table_data":table_data
         })
-
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Invalid request"}, status=400)
+
 
 
 
