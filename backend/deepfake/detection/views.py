@@ -3,6 +3,7 @@ import os
 import uuid
 import subprocess
 import time
+import threading
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,12 +12,14 @@ from .services.uploads import save_uploaded_file
 from .services.preprocessing import run_preprocessing
 from .services.inference import run_inference
 from .services.explainability import run_gradcam
-from .services.llm import run_llm
+from .services.llm import run_llm, warm_up_llm
 from .utils.performance import PerformanceLogger
 from .df_model.model_cache import preload_cached_models
 
 
 preload_cached_models()
+if os.environ.get("DEFAKE_LLM_WARMUP", "0") == "1":
+    threading.Thread(target=warm_up_llm, daemon=True).start()
 
 
 def measure_elapsed(label, timings, func, *args, **kwargs):
