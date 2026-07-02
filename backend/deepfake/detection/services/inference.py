@@ -1,5 +1,5 @@
 import time
-from ..df_model.detection_model import run_detection_model
+from ..detector.detection_model import run_detection_model
 
 
 def run_inference(preprocessed_path, timings):

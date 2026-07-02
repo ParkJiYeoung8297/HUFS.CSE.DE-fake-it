@@ -14,7 +14,7 @@ from .services.inference import run_inference
 from .services.explainability import run_gradcam
 from .services.llm import run_llm, warm_up_llm
 from .utils.performance import PerformanceLogger
-from .df_model.model_cache import preload_cached_models
+from .detector.model_cache import preload_cached_models
 
 
 preload_cached_models()

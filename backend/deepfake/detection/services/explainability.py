@@ -1,6 +1,6 @@
 import time
 
-from ..df_model.all_grad_cam import (
+from ..detector.all_grad_cam import (
     run_gradcam_roi_analysis,
 )
 from .llm import run_llm
