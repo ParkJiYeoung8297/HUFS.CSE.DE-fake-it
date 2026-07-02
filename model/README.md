@@ -72,7 +72,7 @@ The following utilities are helpful in data and label management:
 - [Celeb-DF Fake processed videos](https://drive.google.com/file/d/1tgfoaf2LV48ziNFqpXH7nm1USW1hfPUC/view?usp=drive_link)
 - [Celeb-DF Real processed videos](https://drive.google.com/file/d/1Rlipbby2MXGWFaoay6th6lSDXMzu5Bg8/view?usp=drive_link)
 
-**Note:** Labels for all preprocessed data are provided under `~~~`.
+
 
 ### Trained Models
 - [Download trained models](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view?usp=sharing)

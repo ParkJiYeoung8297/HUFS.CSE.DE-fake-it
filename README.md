@@ -14,11 +14,14 @@ To interpret the results, we apply Grad-CAM for visual explanation, compute regi
 ## 2. Directory Structure
 ```
 HUFS.CSE.DE-fake-it/
-├── backend/         # Django backend server
-├── frontend/        # React frontend application
-├── model/           # Model training and explanation module
-├── requirements.txt # Dependency file
-└── README.md        # Project overview documentation
+├── backend/          # Django backend server
+│   └── README.md     # Backend setup, API, logging, and benchmark guide
+├── frontend/         # React frontend application
+│   └── README.md     # Frontend setup and UI/API guide
+├── model/            # Model training and explanation notebooks
+│   └── README.md     # Dataset, training, prediction, and XAI guide
+├── requirements.txt  # Python dependency file
+└── README.md         # Project overview documentation
 
 ```
 1. backend
@@ -29,6 +32,8 @@ HUFS.CSE.DE-fake-it/
 
 3. model
   - Contains modules for training the deepfake detection model, performing Grad-CAM interpretation, ROI-based visualization, and generating LLM-based textual explanations.
+
+For implementation-specific instructions, see the README files inside `backend/`, `frontend/`, and `model/`.
 
 
 
@@ -81,6 +86,21 @@ HUFS.CSE.DE-fake-it/
 <p align="left">
   <img width="80%" height="80%" alt="image" src="https://github.com/user-attachments/assets/6a77534f-236b-4864-8b93-6742ddb7fd39" />
 </p>
+
+- Pairwise Preference Evaluation of Explanation Settings
+
+We additionally evaluated whether richer explanation settings are preferred by LLM-based judgment. The pairwise test compares binary-only explanations, binary + method explanations, and binary + method + ROI explanations on correctly classified samples only (`N = 60`, 30 real and 30 fake videos).
+
+| Comparison A | Comparison B | Preferred Setting | LLM Judge | Overall | Fake | Real |
+| ------------ | ------------ | ----------------- | --------- | ------- | ---- | ---- |
+| Binary only | **Binary + Method** | B preferred | Llama3 | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
+| Binary only | **Binary + Method** | B preferred | GPT-4o | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
+| Binary + Method | **Binary + Method + ROI** | B preferred | Llama3 | 45/60 (75%) | 27/30 (90%) | 18/30 (60%) |
+| Binary + Method | **Binary + Method + ROI** | B preferred | GPT-4o | 49/60 (82%) | 30/30 (100%) | 19/30 (63%) |
+| Binary only | **Binary + Method + ROI** | B preferred | Llama3 | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
+| Binary only | **Binary + Method + ROI** | B preferred | GPT-4o | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
+
+The corresponding notebook is available at `model/explanation_pairwise_test.ipynb`.
   
   
 
@@ -92,20 +112,27 @@ HUFS.CSE.DE-fake-it/
 
 
 
-## 7. Preprocessing Tools
+## 7. Explanation Evaluation
+
+- `Grad_CAM_and_ROI.ipynb`: Generates Grad-CAM videos, ROI activation scores, and visual explanation outputs.
+- `explanation_pairwise_test.ipynb`: Runs pairwise preference tests for explanation settings using LLM-based judgment.
+
+## 8. Preprocessing Tools
 
 - `validate_video.py`: Removes corrupted or too-short videos
 - `cut_frame.py`: Extracts the first 150 frames and saves them as MJPEG
 - `make_meta_data.py`: Automatically generates labels and metadata
 - `Grad_CAM_and_ROI.ipynb`: Generates CAM visualizations and ROI-based visual/textual explanations
 
-## 8. Running the Application
+## 9. Running the Application
 
 Before running inference, download the trained model and place the checkpoint at:
 
 ```text
 backend/detection/detector/checkpoint_v35.pt
 ```
+
+The Django settings file is local-only and is not tracked in Git. Before running the backend, make sure `backend/config/settings.py` exists locally and includes the `detection`, `corsheaders`, and `rest_framework` apps, `MEDIA_URL`, `MEDIA_ROOT`, and CORS access for `http://localhost:3000`.
 
 Run the backend server:
 
@@ -124,7 +151,7 @@ npm start
 
 The frontend runs at `http://localhost:3000`, and the backend API runs at `http://localhost:8000`.
 
-## 9. Logging
+## 10. Logging
 
 The backend uses structured console logging for the main processing steps:
 
@@ -147,7 +174,7 @@ The default log level is `INFO`. To see detailed debug logs, run the backend wit
 DEFAKE_LOG_LEVEL=DEBUG python manage.py runserver
 ```
 
-## 10. Optional Performance Benchmark
+## 11. Optional Performance Benchmark
 
 Runtime logging is disabled in the default web API flow. To measure processing time for a local video, run:
 
@@ -166,57 +193,72 @@ Benchmark logs are written to `backend/logs/performance.csv` and `backend/logs/p
 
 The benchmark command is implemented as a Django custom management command under `backend/detection/management/commands/`. The `management` directory is Django's standard location for app-specific CLI commands that can be run with `python manage.py <command>`.
 
-## 11. Contributors
-<!--유저이름만 본인이름으로 변경하면 됨.-->
+## 12. Contributors
+
 <table>
   <tr>
-    <td align="center">
+    <td align="center" width="150" valign="top">
       <a href="https://github.com/ParkJiYeoung8297">
-        <img src="https://github.com/ParkJiYeoung8297.png" width="100px;" alt="username1"/>
+        <img src="https://github.com/ParkJiYeoung8297.png" width="90" height="90" alt="Jiyeong Park"/>
         <br />
-        <sub><b>Park Ji Yeong</b></sub>
+        <sub><b>Jiyeong Park</b></sub>
       </a>
+      <br />
+      <sub>First Author / Project Lead</sub>
     </td>
-    <td align="center">
+    <td align="center" width="150" valign="top">
       <a href="https://github.com/sercanyesilkoy">
-        <img src="https://github.com/sercanyesilkoy.png" width="100px;" alt="username2"/>
+        <img src="https://github.com/sercanyesilkoy.png" width="90" height="90" alt="Sercan Yeşilköy"/>
         <br />
         <sub><b>Sercan Yeşilköy</b></sub>
       </a>
+      <br />
+      <sub>Research Contributor</sub>
     </td>
-    <td align="center">
+    <td align="center" width="150" valign="top">
       <a href="https://github.com/dylim-326">
-        <img src="https://github.com/username3.png" width="100px;" alt="username3"/>
+        <img src="https://github.com/dylim-326.png" width="90" height="90" alt="Doyeon Lim"/>
         <br />
-        <sub><b>Lim Do Yeon</b></sub>
+        <sub><b>Doyeon Lim</b></sub>
       </a>
+      <br />
+      <sub>Research Contributor</sub>
     </td>
-    <td align="center">
+    <td align="center" width="150" valign="top">
       <a href="https://github.com/huiryeong">
-        <img src="https://github.com/huiryeong.png" width="100px;" alt="qkrgmlfud"/>
+        <img src="https://github.com/huiryeong.png" width="90" height="90" alt="Huiryeong Park"/>
         <br />
-        <sub><b>Park Hui Ryeong</b></sub>
+        <sub><b>Huiryeong Park</b></sub>
       </a>
+      <br />
+      <sub>Research Contributor</sub>
     </td>
-    <td align="center">
+    <td align="center" width="150" valign="top">
       <a href="https://github.com/kellylee23">
-        <img src="https://github.com/kellylee23.png" width="100px;" alt="leeeunseo"/>
+        <img src="https://github.com/kellylee23.png" width="90" height="90" alt="Eunseo Lee"/>
         <br />
-        <sub><b>Lee Eun Seo</b></sub>
+        <sub><b>Eunseo Lee</b></sub>
       </a>
-   <td align="center">
-  <a href="https://github.com/Mohsen-Ali-Alawami">
-    <img src="https://github.com/Mohsen-Ali-Alawami.png?size=100" width="100px;" alt="Prof. Mohsen Ali Alawami"/>
-    <br />
-    <sub><b>Prof. Mohsen Ali Alawami</b></sub>
-  </a>
-  <br />
-  <sub>Supervisor / Research Contributor</sub>
-</td>
+      <br />
+      <sub>Research Contributor</sub>
+    </td>
+    <td align="center" width="150" valign="top">
+      <a href="https://github.com/Mohsen-Ali-Alawami">
+        <img src="https://github.com/Mohsen-Ali-Alawami.png?size=90" width="90" height="90" alt="Prof. Mohsen Ali Alawami"/>
+        <br />
+        <sub><b>Prof. Mohsen Ali Alawami</b></sub>
+      </a>
+      <br />
+      <sub>Supervisor / Research Contributor</sub>
+    </td>
   </tr>
 </table>
 
+## 13. Research Supervision
 
+- **Prof. Mohsen Ali Alawami:** Research supervision, methodology refinement, project extension guidance, and paper writing/revisions
 
-## 12. Contact
-Contact: wldud8297@gmail.com
+## 14. Contact
+
+- Prof. Mohsen Ali Alawami: mohsencomm@hufs.ac.kr
+- Jiyeong Park: wldud8297@gmail.com
