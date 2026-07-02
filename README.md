@@ -101,6 +101,12 @@ HUFS.CSE.DE-fake-it/
 
 ## 8. Running the Application
 
+Before running inference, download the trained model and place the checkpoint at:
+
+```text
+backend/detection/detector/checkpoint_v35.pt
+```
+
 Run the backend server:
 
 ```bash
