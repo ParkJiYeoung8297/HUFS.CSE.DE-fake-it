@@ -1,4 +1,4 @@
-# Seeing Through Deepfakes: Explainable and Usable Multi-Task Framework with Deep Learning and LLMs
+# Seeing Through Deepfakes: An Explainable Multi-Task Detection Framework with Deep Learning and Large Language Models
 
 ---
 
