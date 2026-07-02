@@ -10,11 +10,6 @@ export default function DeepfakeDetector() {
     const [isUploading, setIsUploading] = useState(false); // 🔄 대기 중 표시
     const navigate = useNavigate();
 
-    const [probability, setProbability] = useState(null);
-    // const [converted_video_url, setConvertedVideo] = useState(null);
-    const [originalImage, setOriginalImage] = useState(null);
-    const [heatmapImage, setHeatmapImage] = useState(null);
-    const [analysisTableData, setAnalysisTableData] = useState([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false); // 🆕 업로드 이후 분석용 로딩
 
 
@@ -37,6 +32,9 @@ export default function DeepfakeDetector() {
           });
 
           const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || "Video preview failed.");
+          }
           console.log("Server response:", result);
 
           setConvertedVideo(`http://localhost:8000${result.video_url}`);
@@ -88,13 +86,12 @@ export default function DeepfakeDetector() {
         });
 
         const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || "Video analysis failed.");
+        }
         console.log("Result from server:", result);
 
-        setProbability(result.probability);
-        // setConvertedVideo(result.converted_video_url);
-        setOriginalImage(result.original_frame_url);
-        setHeatmapImage(result.heatmap_url);
-        setAnalysisTableData(result.table_data); // ⬅️ 테이블 데이터 저장
+        const tableData = Array.isArray(result.table_data) ? result.table_data : [];
         
         navigate("/result", {
         state: {
@@ -103,7 +100,7 @@ export default function DeepfakeDetector() {
           grad_cam_Video: result.grad_cam_video_url,
           output_box_Video: result.output_box_video_url,
           explanations: result.explanations,
-          analysisTableHTML: result.table_data,
+          analysisTableHTML: tableData,
         },
       });
 
@@ -125,7 +122,7 @@ export default function DeepfakeDetector() {
         <div className="navbar-logo" onClick={() => window.location.reload()}>DE-Fake it</div>
         <div className="navbar-menu">
           <a href="#about">About Us</a>
-          <a href="#" onClick={() => window.location.reload()}>Home</a>
+          <a href="/">Home</a>
         </div>
       </nav>
 

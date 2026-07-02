@@ -1,9 +1,20 @@
 import React from "react";
 import "./DeepfakeResult.css";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+
+const API_BASE_URL = "http://localhost:8000";
+
+function mediaUrl(path) {
+  if (!path) {
+    return "";
+  }
+  return path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+}
 
 export default function DeepfakeResult() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const resultState = location.state || {};
   const {
     prediction,
     probability,
@@ -11,7 +22,30 @@ export default function DeepfakeResult() {
     output_box_Video,
     explanations,
     analysisTableHTML,
-  } = location.state;  
+  } = resultState;
+
+  const tableRows = Array.isArray(analysisTableHTML) ? analysisTableHTML : [];
+
+  if (!location.state) {
+    return (
+      <div className="page-container">
+        <nav className="navbar">
+          <div className="navbar-logo" onClick={() => navigate("/")}>
+            DE-Fake it
+          </div>
+          <div className="navbar-menu">
+            <button type="button" onClick={() => navigate("/")}>
+              Home
+            </button>
+          </div>
+        </nav>
+        <h1 className="title">DeepFake Analysis Report</h1>
+        <div className="content-wrapper">
+          <p className="reason-text">No analysis result is available.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -22,7 +56,7 @@ export default function DeepfakeResult() {
         </div>
         <div className="navbar-menu">
           <a href="#about">About Us</a>
-          <a href="#" onClick={() => window.location.reload()}>
+          <a href="/">
             Home
           </a>
         </div>
@@ -36,10 +70,10 @@ export default function DeepfakeResult() {
         <div className="left-column">
           <div className="video-row">
             <video controls className="video-player">
-              <source src={grad_cam_Video} type="video/mp4" />
+              <source src={mediaUrl(grad_cam_Video)} type="video/mp4" />
             </video>
             <video controls className="video-player">
-              <source src={output_box_Video} type="video/mp4" />
+              <source src={mediaUrl(output_box_Video)} type="video/mp4" />
             </video>
           </div>
           <h2 className={prediction === "FAKE" ? "label-fake" : "label-real"}>
@@ -61,7 +95,7 @@ export default function DeepfakeResult() {
               </tr>
             </thead>
             <tbody>
-              {analysisTableHTML.map((row, index) => (
+              {tableRows.map((row, index) => (
                 <tr key={index}>
                   <td>{row.region}</td>
                   <td>{row.first_count}</td>
@@ -69,6 +103,11 @@ export default function DeepfakeResult() {
                   <td>{row.region === "None" ? "-" : row.confidence}</td>
                 </tr>
               ))}
+              {tableRows.length === 0 && (
+                <tr>
+                  <td colSpan="4">No ROI table data available.</td>
+                </tr>
+              )}
             </tbody>
           </table>
           

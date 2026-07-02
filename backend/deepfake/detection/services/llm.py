@@ -7,6 +7,10 @@ LLM_URL = os.environ.get("DEFAKE_LLM_URL", "http://localhost:11434/api/generate"
 LLM_MODEL = os.environ.get("DEFAKE_LLM_MODEL", "llama3")
 LLM_KEEP_ALIVE = os.environ.get("DEFAKE_LLM_KEEP_ALIVE", "30m")
 LLM_TIMEOUT_SEC = int(os.environ.get("DEFAKE_LLM_TIMEOUT_SEC", "60"))
+LLM_UNAVAILABLE_MESSAGE = (
+    "Textual explanation is unavailable because the local LLM service is not running. "
+    "The prediction, probability, Grad-CAM videos, and ROI table were still generated successfully."
+)
 
 
 def build_llm_prompt(summary):
@@ -65,12 +69,16 @@ def query_llm_model(prompt):
         "keep_alive": LLM_KEEP_ALIVE,
     }
 
-    response = requests.post(
-        LLM_URL,
-        headers=headers,
-        data=json.dumps(data),
-        timeout=LLM_TIMEOUT_SEC,
-    )
+    try:
+        response = requests.post(
+            LLM_URL,
+            headers=headers,
+            data=json.dumps(data),
+            timeout=LLM_TIMEOUT_SEC,
+        )
+    except requests.RequestException as exc:
+        print(f"LLM request skipped: {exc}")
+        return LLM_UNAVAILABLE_MESSAGE
     print("응답 코드 : ", response.status_code)
     if response.status_code == 200:
         print("응답 내용:")
@@ -87,7 +95,7 @@ def query_llm_model(prompt):
         return combined_response
 
     print("요청 실패:", response.status_code)
-    return ""
+    return LLM_UNAVAILABLE_MESSAGE
 
 
 def warm_up_llm():
