@@ -1,8 +1,6 @@
-from django.shortcuts import render
 import os
 import uuid
 import subprocess
-import time
 import threading
 from django.conf import settings
 from django.http import JsonResponse
@@ -13,7 +11,7 @@ from .services.preprocessing import run_preprocessing
 from .services.inference import run_inference
 from .services.explainability import run_gradcam
 from .services.llm import run_llm, warm_up_llm
-from .utils.performance import PerformanceLogger
+from .utils.results import save_detection_result
 from .detector.model_cache import preload_cached_models
 
 
@@ -22,82 +20,52 @@ if os.environ.get("DEFAKE_LLM_WARMUP", "0") == "1":
     threading.Thread(target=warm_up_llm, daemon=True).start()
 
 
-def measure_elapsed(label, timings, func, *args, **kwargs):
-    start_time = time.perf_counter()
-    result = func(*args, **kwargs)
-    timings[label] = time.perf_counter() - start_time
-    return result
-
-
-def print_timing_summary(timings):
-    print("\n===== Processing Time Summary =====")
-    print(f"Average preprocessing time/video: {timings.get('preprocessing', 0.0):.2f} sec")
-    print(f"Average inference time/video: {timings.get('inference', 0.0):.2f} sec")
-    print(f"Grad-CAM generation time: {timings.get('grad_cam', 0.0):.2f} sec")
-    print(f"LLM explanation generation time: {timings.get('llm', 0.0):.2f} sec")
-    print(f"Total processing time/video: {timings.get('total', 0.0):.2f} sec")
-    print("===================================\n")
-
-
 @csrf_exempt
 def upload_video(request):
     if request.method == 'POST' and request.FILES.get('video'):
-        total_start_time = time.perf_counter()
-        timings = {}
-
         uploaded_file = request.FILES['video']
-        performance_logger = PerformanceLogger(
-            uploaded_file.name,
-            getattr(uploaded_file, "size", None)
-        )
 
         try:
-            with performance_logger.step("total"):
-                with performance_logger.step("file_save"):
-                    filename, save_path = save_uploaded_file(uploaded_file)
-                    performance_logger.set_video_path(save_path)
+            filename, save_path = save_uploaded_file(uploaded_file)
 
-                output_path = os.path.join(settings.MEDIA_ROOT,f"preprocessed_{filename}")
+            output_path = os.path.join(settings.MEDIA_ROOT, f"preprocessed_{filename}")
 
-                with performance_logger.step("preprocessing"):
-                    preprocessed_path = run_preprocessing(save_path, output_path,uploaded_file.name,timings)
+            preprocessed_path = run_preprocessing(save_path, output_path, uploaded_file.name)
 
-                with performance_logger.step("inference"):
-                    result = run_inference(preprocessed_path,timings)
+            result = run_inference(preprocessed_path)
 
-                response_txt = ""
-                table_data = []
+            response_txt = ""
+            table_data = []
 
-                if result["Prediction"] != "Unknown":
-                    with performance_logger.step("grad_cam"):
-                        roi_analyze_result, table_data = run_gradcam(
-                            output_path,
-                            uploaded_file.name,
-                            result,
-                            timings
-                        )
+            if result["Prediction"] != "Unknown":
+                roi_analyze_result, table_data = run_gradcam(
+                    output_path,
+                    uploaded_file.name,
+                    result,
+                )
+                response_txt = run_llm(roi_analyze_result)
 
-                    with performance_logger.step("llm"):
-                        response_txt = run_llm(roi_analyze_result, timings)
-
-            timings['total'] = time.perf_counter() - total_start_time
-
-            print_timing_summary(timings)
-            performance_logger.save()
-
-            # 저장 완료 후 파일 URL 반환
-            return JsonResponse({
+            response_data = {
                 "message": "Success",
+                "uploaded_video_name": uploaded_file.name,
+                "saved_video_name": filename,
                 "prediction": result["Prediction"],
                 "probability": result["Probability"],
                 "grad_cam_video_url": f"/media/preprocessed_{filename}/converted_grad_cam_on_original.mp4",
                 "output_box_video_url": f"/media/preprocessed_{filename}/converted_output_box_on_original.mp4",
                 "explanations": response_txt,
-                "table_data":table_data
-        })
+                "table_data": table_data,
+            }
+            result_json_path, result_jsonl_path = save_detection_result(
+                response_data,
+                output_path,
+            )
+            response_data["result_file"] = result_json_path
+            response_data["result_log_file"] = result_jsonl_path
+
+            # 저장 완료 후 파일 URL 반환
+            return JsonResponse(response_data)
         except Exception as e:
-            timings['total'] = time.perf_counter() - total_start_time
-            performance_logger.save()
             return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Invalid request"}, status=400)
 
@@ -112,6 +80,7 @@ def show_video(request):
 
         # 1. 원본 영상 임시 저장
         input_filename = f"{uuid.uuid4().hex}_{uploaded_file.name}"
+        os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
         input_path = os.path.join(settings.MEDIA_ROOT, input_filename)
 
         with open(input_path, 'wb+') as destination:

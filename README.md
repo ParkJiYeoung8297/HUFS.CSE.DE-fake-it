@@ -99,9 +99,24 @@ HUFS.CSE.DE-fake-it/
 - `make_meta_data.py`: Automatically generates labels and metadata
 - `Grad_CAM_and_ROI.ipynb`: Generates CAM visualizations and ROI-based visual/textual explanations
 
+## 8. Optional Performance Benchmark
 
+Runtime logging is disabled in the default web API flow. To measure processing time for a local video, run:
 
-## 8. Contributors
+```bash
+cd backend/deepfake
+python manage.py benchmark_detection /path/to/video.mp4
+```
+
+Use `--skip-llm` to benchmark only preprocessing, inference, and Grad-CAM:
+
+```bash
+python manage.py benchmark_detection /path/to/video.mp4 --skip-llm
+```
+
+Benchmark logs are written to `backend/deepfake/logs/performance.csv` and `backend/deepfake/logs/performance.md`.
+
+## 9. Contributors
 <!--유저이름만 본인이름으로 변경하면 됨.-->
 <table>
   <tr>
@@ -153,5 +168,5 @@ HUFS.CSE.DE-fake-it/
 
 
 
-## 9. Contact
+## 10. Contact
 Contact: wldud8297@gmail.com

@@ -14,7 +14,6 @@ from django.conf import settings
 from pathlib import Path
 import subprocess
 import cv2
-import time
 from concurrent.futures import ThreadPoolExecutor
 
 from .model_cache import get_cached_model, get_device
@@ -404,25 +403,4 @@ def run_gradcam_roi_analysis(video_path,file_name,result,checkpoint_name='checkp
 
     return calculate_roi_scores(video_path, file_name, result, model, model_lock)
 
-
-def all_calculate_roi_scores(video_path,file_name,result,checkpoint_name='checkpoint_v35',selected_model='EfficientNet-b0'):
-    timings = {}
-
-    grad_cam_roi_start_time = time.perf_counter()
-    roi_analyze_result, table_data = run_gradcam_roi_analysis(
-        video_path,
-        file_name,
-        result,
-        checkpoint_name,
-        selected_model
-    )
-    timings['grad_cam'] = time.perf_counter() - grad_cam_roi_start_time
-
-    from ..services.llm import run_llm_explanation
-
-    llm_start_time = time.perf_counter()
-    response_txt = run_llm_explanation(roi_analyze_result)
-    timings['llm'] = time.perf_counter() - llm_start_time
-
-    return response_txt, table_data, timings
 

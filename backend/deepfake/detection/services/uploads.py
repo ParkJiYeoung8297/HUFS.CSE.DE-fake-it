@@ -8,6 +8,7 @@ from django.conf import settings
 def save_uploaded_file(uploaded_file):
     filename = f"{uuid.uuid4().hex}_{uploaded_file.name}"
 
+    os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
     save_path = os.path.join(settings.MEDIA_ROOT, filename)
 
     with open(save_path, 'wb+') as destination:

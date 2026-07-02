@@ -1,7 +1,5 @@
 import json
 import os
-import time
-
 import requests
 
 
@@ -121,8 +119,5 @@ def run_llm_explanation(roi_analyze_result):
     return query_llm_model(prompt)
 
 
-def run_llm(roi_analyze_result, timings):
-    start_time = time.perf_counter()
-    response_txt = run_llm_explanation(roi_analyze_result)
-    timings['llm'] = time.perf_counter() - start_time
-    return response_txt
+def run_llm(roi_analyze_result):
+    return run_llm_explanation(roi_analyze_result)

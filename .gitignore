@@ -13,6 +13,9 @@ db.sqlite3
 db.sqlite3-journal
 backend/deepfake/media/*
 !backend/deepfake/media/.gitkeep
+backend/deepfake/data.jsonl
+backend/deepfake/logs/
+backend/deepfake/detection/detector/*.pt
 
 # If your build process includes running collectstatic, then you probably don't need or want to include staticfiles/
 # in your Git repository. Update and uncomment the following line accordingly.
