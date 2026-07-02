@@ -99,7 +99,49 @@ HUFS.CSE.DE-fake-it/
 - `make_meta_data.py`: Automatically generates labels and metadata
 - `Grad_CAM_and_ROI.ipynb`: Generates CAM visualizations and ROI-based visual/textual explanations
 
-## 8. Optional Performance Benchmark
+## 8. Running the Application
+
+Run the backend server:
+
+```bash
+cd backend
+python manage.py runserver
+```
+
+Run the frontend development server in a separate terminal:
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+The frontend runs at `http://localhost:3000`, and the backend API runs at `http://localhost:8000`.
+
+## 9. Logging
+
+The backend uses structured console logging for the main processing steps:
+
+- preview video conversion
+- upload analysis start and completion
+- preprocessing completion
+- inference result
+- Grad-CAM completion
+- LLM explanation completion or failure
+
+Logs are printed in this format:
+
+```text
+[INFO] 16:12:37 detection.services.pipeline - Analysis started: sample.mp4
+```
+
+The default log level is `INFO`. To see detailed debug logs, run the backend with:
+
+```bash
+DEFAKE_LOG_LEVEL=DEBUG python manage.py runserver
+```
+
+## 10. Optional Performance Benchmark
 
 Runtime logging is disabled in the default web API flow. To measure processing time for a local video, run:
 
@@ -116,7 +158,9 @@ python manage.py benchmark_detection /path/to/video.mp4 --skip-llm
 
 Benchmark logs are written to `backend/logs/performance.csv` and `backend/logs/performance.md`.
 
-## 9. Contributors
+The benchmark command is implemented as a Django custom management command under `backend/detection/management/commands/`. The `management` directory is Django's standard location for app-specific CLI commands that can be run with `python manage.py <command>`.
+
+## 11. Contributors
 <!--유저이름만 본인이름으로 변경하면 됨.-->
 <table>
   <tr>
@@ -168,5 +212,5 @@ Benchmark logs are written to `backend/logs/performance.csv` and `backend/logs/p
 
 
 
-## 10. Contact
+## 12. Contact
 Contact: wldud8297@gmail.com
