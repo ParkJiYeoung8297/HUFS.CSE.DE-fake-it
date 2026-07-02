@@ -31,7 +31,7 @@ export default function DeepfakeDetector() {
         formData.append("video", file);
 
         try {
-          const response = await fetch("http://localhost:8000/showVideo/", {
+          const response = await fetch("http://localhost:8000/api/show-video/", {
             method: "POST",
             body: formData,
           });
@@ -82,7 +82,7 @@ export default function DeepfakeDetector() {
       formData.append("video", videoFile);
 
       try {
-        const response = await fetch("http://localhost:8000/upload/", {
+        const response = await fetch("http://localhost:8000/api/upload/", {
           method: "POST",
           body: formData,
         });
