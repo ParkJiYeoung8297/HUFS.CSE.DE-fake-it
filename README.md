@@ -21,10 +21,10 @@ HUFS.CSE.DE-fake-it/
 └── README.md        # Project overview documentation
 
 ```
-1. backend/deepfake
+1. backend
   - This is the Django-based backend server. It includes APIs that process uploaded videos and return prediction results using the trained model.
 
-2. frontend/dpfake
+2. frontend
   - This is the React-based user interface. It handles video uploads and displays prediction results to the user.
 
 3. model
@@ -104,7 +104,7 @@ HUFS.CSE.DE-fake-it/
 Runtime logging is disabled in the default web API flow. To measure processing time for a local video, run:
 
 ```bash
-cd backend/deepfake
+cd backend
 python manage.py benchmark_detection /path/to/video.mp4
 ```
 
@@ -114,7 +114,7 @@ Use `--skip-llm` to benchmark only preprocessing, inference, and Grad-CAM:
 python manage.py benchmark_detection /path/to/video.mp4 --skip-llm
 ```
 
-Benchmark logs are written to `backend/deepfake/logs/performance.csv` and `backend/deepfake/logs/performance.md`.
+Benchmark logs are written to `backend/logs/performance.csv` and `backend/logs/performance.md`.
 
 ## 9. Contributors
 <!--유저이름만 본인이름으로 변경하면 됨.-->
