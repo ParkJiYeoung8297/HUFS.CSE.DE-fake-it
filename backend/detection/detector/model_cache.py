@@ -6,6 +6,7 @@ import torch
 from .model import Model
 
 
+# Load detector checkpoints once per Django process and reuse them safely.
 checkpoint_path = Path(__file__).resolve().parent
 
 _model_cache = {}

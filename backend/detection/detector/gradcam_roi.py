@@ -25,9 +25,14 @@ except RuntimeError:
 cv2.setNumThreads(1)
 
 
+class _null_context:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
 
 
-# ✅ Grad-CAM computation for binary classification
 def compute_gradcam_binary(model, input_tensor, model_lock=None, target_class=0, device_override=None):
     fmap = None
     grad = None
@@ -49,51 +54,34 @@ def compute_gradcam_binary(model, input_tensor, model_lock=None, target_class=0,
     with model_lock or _null_context():
         _, binary_output, method_output = model(input_tensor)
 
-        # Get the probability of the target class
         prob = F.softmax(binary_output, dim=1)[0, target_class].item()
+        binary_pred = torch.argmax(binary_output, dim=1).item()
+        method_pred = torch.argmax(method_output, dim=1).item()
 
-        # Predict binary and method classes
-        binary_pred = torch.argmax(binary_output, dim=1).item()   # 0: fake, 1: real
-        method_pred = torch.argmax(method_output, dim=1).item()   # 0: original, 1~6: fake methods, 7: others
-
-        # 🔴 Condition 1: If the prediction is real and the method is original, skip CAM computation / 조건 1: real(1) + original(0) → CAM X
-        if binary_pred == 1 and method_pred==0:
+        if binary_pred == 1 and method_pred == 0:
             cam = np.zeros((input_tensor.shape[-2], input_tensor.shape[-1]))
             f.remove()
             b.remove()
-            return cam,prob,binary_pred, method_pred
+            return cam, prob, binary_pred, method_pred
 
-        # Grad-CAM for fake class (target_class = 0)
         target_class = 0
         model.zero_grad()
         binary_output[0, target_class].backward()
 
-    # Compute Grad-CAM
     weights = grad.mean(dim=[2, 3], keepdim=True)
     cam = (weights * fmap).sum(dim=1, keepdim=True)
     cam = F.relu(cam).squeeze().cpu().numpy()
 
-    # 🔵 Condition 2: If the prediction is fake and the method is not original, enhance CAM / 조건 2: fake (0) + method (1~7) (≠ 0) → CAM ↑
     if binary_pred == 0 and method_pred != 0:
-        cam *=1.5
+        cam *= 1.5
 
-    # Normalize and resize the CAM
     cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
     cam = cv2.resize(cam, (input_tensor.shape[-1], input_tensor.shape[-2]))
-
-
 
     f.remove()
     b.remove()
     return cam, prob, binary_pred, method_pred
 
-
-class _null_context:
-    def __enter__(self):
-        return None
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        return False
 
 def roi_activation(cam, bbox):
     x1, y1, x2, y2 = bbox

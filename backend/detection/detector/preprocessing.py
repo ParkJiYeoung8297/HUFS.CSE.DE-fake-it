@@ -122,7 +122,6 @@ def process_single_video(video_path, output_path, filename):
             if source_frame_idx % FRAME_SAMPLE_STRIDE != 0:
                 continue
 
-            # RGB로 변환
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             boxes, _, landmarks = mtcnn.detect(rgb, landmarks=True)
 
