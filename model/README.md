@@ -60,6 +60,7 @@ The following utilities are helpful in data and label management:
 - Filtering out low-quality or short-length videos
 - Cutting and saving fixed-length MJPEG sequences
 - Grad-CAM and ROI scoring for XAI (`Grad_CAM_and_ROI.ipynb`)
+- Explanation quality pairwise testing (`explanation_pairwise_test.ipynb`)
 
 ---
 
