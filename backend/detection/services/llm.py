@@ -1,6 +1,10 @@
 import json
+import logging
 import os
 import requests
+
+
+logger = logging.getLogger(__name__)
 
 
 LLM_URL = os.environ.get("DEFAKE_LLM_URL", "http://localhost:11434/api/generate")
@@ -14,7 +18,7 @@ LLM_UNAVAILABLE_MESSAGE = (
 
 
 def build_llm_prompt(summary):
-    print(f"summary: {summary}")
+    logger.debug("LLM prompt summary: %s", summary)
 
     prompt = (
         f"모델 예측 결과: REAL/FAKE={summary['binary_pred']}, 확률={summary['cam_score']}, "
@@ -77,11 +81,10 @@ def query_llm_model(prompt):
             timeout=LLM_TIMEOUT_SEC,
         )
     except requests.RequestException as exc:
-        print(f"LLM request skipped: {exc}")
+        logger.warning("LLM request skipped: %s", exc)
         return LLM_UNAVAILABLE_MESSAGE
-    print("응답 코드 : ", response.status_code)
+    logger.debug("LLM response status: %s", response.status_code)
     if response.status_code == 200:
-        print("응답 내용:")
         combined_response = ''
 
         for line in response.text.splitlines():
@@ -91,10 +94,10 @@ def query_llm_model(prompt):
             except json.JSONDecodeError:
                 continue
 
-        print(combined_response)
+        logger.debug("LLM response text: %s", combined_response)
         return combined_response
 
-    print("요청 실패:", response.status_code)
+    logger.warning("LLM request failed with status: %s", response.status_code)
     return LLM_UNAVAILABLE_MESSAGE
 
 
@@ -116,14 +119,14 @@ def warm_up_llm():
             data=json.dumps(data),
             timeout=LLM_TIMEOUT_SEC,
         )
-        print(f"LLM warmed up: {LLM_MODEL}")
+        logger.debug("LLM warmed up: %s", LLM_MODEL)
     except requests.RequestException as exc:
-        print(f"LLM warm-up skipped: {exc}")
+        logger.warning("LLM warm-up skipped: %s", exc)
 
 
 def run_llm_explanation(roi_analyze_result):
     prompt = build_llm_prompt(roi_analyze_result)
-    print("프롬프트 내용 : ", prompt)
+    logger.debug("LLM prompt: %s", prompt)
     return query_llm_model(prompt)
 
 

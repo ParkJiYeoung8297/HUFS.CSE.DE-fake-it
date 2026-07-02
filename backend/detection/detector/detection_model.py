@@ -1,11 +1,14 @@
 # Model with feature visualization
-from pathlib import Path
+import logging
 import cv2
 import torch
 from torchvision import transforms
 import os
 import numpy as np
 from .model_cache import get_cached_model
+
+
+logger = logging.getLogger(__name__)
 
 CPU_THREAD_LIMIT = int(os.environ.get("DEFAKE_CPU_THREADS", "4"))
 INFERENCE_BATCH_SIZE = int(os.environ.get("DEFAKE_INFERENCE_BATCH_SIZE", "16"))
@@ -49,7 +52,7 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
         selected_model,
         checkpoint_name
     )
-    print(f"Using device: {device}")
+    logger.debug("Using device for inference: %s", device)
 
     if not os.path.exists(video_path):
         raise ValueError(f"비디오 파일이 존재하지 않습니다: {video_path}")
@@ -102,8 +105,8 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
     final_prediction = 'Unknown' if len(frame_preds) == 0 else ('REAL' if round(sum(frame_preds)/len(frame_preds)) == 1 else 'FAKE')
     majority_method = max(set(method_preds), key=method_preds.count) if method_preds else 6
     
-    print("Final Prediction : ",final_prediction)
-    print("Method Predictin : ",majority_method)
+    logger.debug("Frame vote prediction before probability aggregation: %s", final_prediction)
+    logger.debug("Majority method class before label mapping: %s", majority_method)
 
     # 비디오 하나에 대한 최종 예측
     frame_probs = np.array(frame_probs)
@@ -114,7 +117,7 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
     else:
         avg_probs = np.mean(frame_probs, axis=0)  # [mean_fake, mean_real]
         majority = round(sum(frame_preds) / len(frame_preds))  # 다수결
-        print(sum(frame_preds),"here!!!!!",len(frame_preds)) # 진짜라고 판단한 개수
+        logger.debug("Real-frame votes: %s/%s", sum(frame_preds), len(frame_preds))
         final_prediction = 'REAL' if majority == 1 else 'FAKE'
         final_probability = avg_probs[1] if final_prediction == 'REAL' else avg_probs[0]
         majority_method=method_dict[majority_method]

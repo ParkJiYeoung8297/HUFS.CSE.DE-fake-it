@@ -1,4 +1,5 @@
 import cv2
+import logging
 import torch
 import torchvision.transforms as T
 import numpy as np
@@ -11,8 +12,11 @@ from concurrent.futures import ThreadPoolExecutor
 from .model_cache import get_cached_model, get_device
 from .preprocessing import ROI_METADATA_FILENAME
 
+
+logger = logging.getLogger(__name__)
+
 device = get_device()
-print(f"Using device: {device}")
+logger.debug("Using device for Grad-CAM: %s", device)
 
 CPU_THREAD_LIMIT = int(os.environ.get("DEFAKE_CPU_THREADS", "4"))
 GRADCAM_PIPELINE_BUFFER = int(os.environ.get("DEFAKE_GRADCAM_PIPELINE_BUFFER", "2"))
@@ -106,11 +110,11 @@ def _convert_video(input_path, output_path, delete_source=False):
             output_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        print(f"✅ Video converted: {output_path}")
+        logger.debug("Video converted: %s", output_path)
         if delete_source and os.path.exists(input_path):
             os.remove(input_path)
     except subprocess.CalledProcessError as e:
-        print(f"Error occurred during conversion: {e}")
+        logger.warning("Error occurred during conversion: %s", e)
 
 
 def _compute_gradcam_for_rgb(model, model_lock, transform, rgb):
@@ -121,7 +125,7 @@ def _compute_gradcam_for_rgb(model, model_lock, transform, rgb):
 def _load_roi_metadata(video_dir):
     metadata_path = os.path.join(video_dir, ROI_METADATA_FILENAME)
     if not os.path.exists(metadata_path):
-        print(f"ROI metadata not found: {metadata_path}")
+        logger.warning("ROI metadata not found: %s", metadata_path)
         return []
 
     with open(metadata_path, "r", encoding="utf-8") as metadata_file:

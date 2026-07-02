@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from threading import Lock
 
@@ -5,6 +6,8 @@ import torch
 
 from .model import Model
 
+
+logger = logging.getLogger(__name__)
 
 # Load detector checkpoints once per Django process and reuse them safely.
 checkpoint_path = Path(__file__).resolve().parent
@@ -29,7 +32,13 @@ def get_cached_model(
 
     with _cache_lock:
         if cache_key not in _model_cache:
-            print(f"Loading {purpose} model once: {selected_model}/{checkpoint_name} on {device}")
+            logger.debug(
+                "Loading %s model once: %s/%s on %s",
+                purpose,
+                selected_model,
+                checkpoint_name,
+                device,
+            )
             model = Model(
                 num_binary_classes=2,
                 num_method_classes=7,

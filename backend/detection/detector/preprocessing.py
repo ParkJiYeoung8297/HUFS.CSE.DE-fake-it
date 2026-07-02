@@ -1,8 +1,12 @@
+import logging
 import os
 import cv2
 import json
 import torch
 from facenet_pytorch import MTCNN
+
+
+logger = logging.getLogger(__name__)
 
 CPU_THREAD_LIMIT = int(os.environ.get("DEFAKE_CPU_THREADS", "4"))
 ROI_METADATA_FILENAME = "roi_metadata.json"
@@ -98,7 +102,7 @@ def process_single_video(video_path, output_path, filename):
     device = torch.device("mps") if torch.backends.mps.is_available() else (
         torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     )
-    print(f"Using device: {device}")
+    logger.debug("Using device for preprocessing: %s", device)
 
     mtcnn = MTCNN(keep_all=False, device=torch.device('cpu'))
 
@@ -151,8 +155,8 @@ def process_single_video(video_path, output_path, filename):
                     })
 
                     written_frame_idx += 1
-        except Exception as e:
-            print(f"Error processing frame: {e}")
+        except Exception as exc:
+            logger.warning("Error processing frame %s: %s", source_frame_idx, exc)
             continue
         finally:
             source_frame_idx += 1
@@ -161,6 +165,6 @@ def process_single_video(video_path, output_path, filename):
     with open(metadata_path, "w", encoding="utf-8") as metadata_file:
         json.dump(metadata, metadata_file, ensure_ascii=False)
 
-    print("Saved:", output_video_path)
-    print("Saved ROI metadata:", metadata_path)
+    logger.debug("Saved preprocessed video: %s", output_video_path)
+    logger.debug("Saved ROI metadata: %s", metadata_path)
     return output_video_path

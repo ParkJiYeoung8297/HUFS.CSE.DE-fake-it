@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import threading
@@ -8,6 +9,9 @@ from .services.llm import warm_up_llm
 from .services.pipeline import analyze_uploaded_video
 from .services.uploads import convert_video, save_uploaded_file
 from .detector.model_cache import preload_cached_models
+
+
+logger = logging.getLogger(__name__)
 
 
 preload_cached_models()
@@ -33,11 +37,12 @@ def upload_video(request):
 def show_video(request):
     if request.method == 'POST' and request.FILES.get('video'):
         uploaded_file = request.FILES['video']
-        print(f"📥 Received file: {uploaded_file.name}")
+        logger.info("Preview conversion started: %s", uploaded_file.name)
 
         filename, input_path = save_uploaded_file(uploaded_file)
         try:
             output_filename, _output_path = convert_video(input_path)
+            logger.info("Preview conversion completed: %s", uploaded_file.name)
 
             return JsonResponse({
                 "message": "Video uploaded and converted successfully",

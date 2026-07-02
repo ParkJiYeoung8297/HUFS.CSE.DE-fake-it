@@ -1,3 +1,4 @@
+import logging
 import os
 
 from django.conf import settings
@@ -10,12 +11,23 @@ from .uploads import save_uploaded_file
 from ..utils.results import save_detection_result
 
 
+logger = logging.getLogger(__name__)
+
+
 def analyze_uploaded_video(uploaded_file):
+    logger.info("Analysis started: %s", uploaded_file.name)
     filename, save_path = save_uploaded_file(uploaded_file)
     output_path = os.path.join(settings.MEDIA_ROOT, f"preprocessed_{filename}")
 
     preprocessed_path = run_preprocessing(save_path, output_path, uploaded_file.name)
+    logger.info("Preprocessing completed: %s", uploaded_file.name)
+
     result = run_inference(preprocessed_path)
+    logger.info(
+        "Inference completed: prediction=%s probability=%s",
+        result["Prediction"],
+        result["Probability"],
+    )
 
     response_txt = ""
     table_data = []
@@ -26,7 +38,12 @@ def analyze_uploaded_video(uploaded_file):
             uploaded_file.name,
             result,
         )
+        logger.info("Grad-CAM completed: %s", uploaded_file.name)
+
         response_txt = run_llm(roi_analyze_result)
+        logger.info("LLM explanation completed: %s", uploaded_file.name)
+    else:
+        logger.info("Grad-CAM skipped because prediction is Unknown: %s", uploaded_file.name)
 
     response_data = {
         "message": "Success",
@@ -46,4 +63,5 @@ def analyze_uploaded_video(uploaded_file):
     response_data["result_file"] = result_json_path
     response_data["result_log_file"] = result_jsonl_path
 
+    logger.info("Analysis completed: %s", uploaded_file.name)
     return response_data
