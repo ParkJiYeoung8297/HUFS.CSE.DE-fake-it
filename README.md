@@ -139,10 +139,9 @@ HUFS.CSE.DE-fake-it/
         <br />
         <sub><b>Lee Eun Seo</b></sub>
       </a>
-    </td>
-    <td align="center">
-  <a href="https://github.com/mohsenskku">
-    <img src="https://github.com/mohsenskku.png" width="100px;" alt="mohsenskku"/>
+   <td align="center">
+  <a href="https://github.com/Mohsen-Ali-Alawami">
+    <img src="https://github.com/Mohsen-Ali-Alawami.png?size=100" width="100px;" alt="Prof. Mohsen Ali Alawami"/>
     <br />
     <sub><b>Prof. Mohsen Ali Alawami</b></sub>
   </a>
