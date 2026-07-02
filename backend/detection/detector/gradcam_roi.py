@@ -3,23 +3,13 @@ import torch
 import torchvision.transforms as T
 import numpy as np
 import torch.nn.functional as F
-from torchvision import models
-from torch import nn
 import os
 import json
-import glob
-import pandas as pd
-from tqdm import tqdm
-from django.conf import settings
-from pathlib import Path
 import subprocess
-import cv2
 from concurrent.futures import ThreadPoolExecutor
 
 from .model_cache import get_cached_model, get_device
 from .preprocessing import ROI_METADATA_FILENAME
-
-checkpoint_path=Path(__file__).resolve().parent
 
 device = get_device()
 print(f"Using device: {device}")
@@ -105,10 +95,6 @@ class _null_context:
     def __exit__(self, exc_type, exc_value, traceback):
         return False
 
-def get_bbox(pts):
-    x, y = pts[:,0], pts[:,1]
-    return int(x.min()), int(y.min()), int(x.max()), int(y.max())
-
 def roi_activation(cam, bbox):
     x1, y1, x2, y2 = bbox
     patch = cam[y1:y2, x1:x2]
@@ -192,7 +178,7 @@ def _write_processed_frame(
     facial_region,
     first_detection_count,
     second_detection_count,
-    detection_probabillity,
+    detection_probability,
     video_writer_box,
     video_writer_cam,
 ):
@@ -238,7 +224,7 @@ def _write_processed_frame(
     second_detection_count[second_activated_region]+=1
     for key in facial_region:
         if key!="None" and scores[key]!=-1:
-            detection_probabillity[key]+=cam_score * scores[key]
+            detection_probability[key] += cam_score * scores[key]
 
     return True
 
@@ -257,7 +243,7 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
     facial_region=['Jawline', 'Left Eye', 'Right Eye', 'Left Eyebrow', 'Right Eyebrow', 'Nose', 'Mouth','None']
     first_detection_count = {key: 0 for key in facial_region}
     second_detection_count = {key: 0 for key in facial_region}
-    detection_probabillity={key: 0.0 for key in facial_region}
+    detection_probability = {key: 0.0 for key in facial_region}
 
     video_path_file_name=os.path.join(video_dir,file_name)
     cap = cv2.VideoCapture(video_path_file_name)
@@ -311,7 +297,7 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
                     facial_region,
                     first_detection_count,
                     second_detection_count,
-                    detection_probabillity,
+                    detection_probability,
                     video_writer_box,
                     video_writer_cam
                 ):
@@ -325,7 +311,7 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
                 facial_region,
                 first_detection_count,
                 second_detection_count,
-                detection_probabillity,
+                detection_probability,
                 video_writer_box,
                 video_writer_cam
             ):
@@ -338,12 +324,12 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
     denominator = processed_count or 1
     first_detection_rate = {key: round((value / denominator)*100, 2) for key, value in first_detection_count.items()}
     second_detection_rate = {key: round((value / denominator)*100, 2) for key, value in second_detection_count.items()}
-    raw_detection_probabillity= {key: round(value, 4) for key, value in detection_probabillity.items()}
-    probabillity_total = sum(detection_probabillity.values())
-    if probabillity_total:
-        detection_probabillity= {key: round((value/probabillity_total)*100, 2) for key, value in detection_probabillity.items()}
+    raw_detection_probability = {key: round(value, 4) for key, value in detection_probability.items()}
+    probability_total = sum(detection_probability.values())
+    if probability_total:
+        detection_probability = {key: round((value / probability_total) * 100, 2) for key, value in detection_probability.items()}
     else:
-        detection_probabillity= {key: 0.0 for key in detection_probabillity}
+        detection_probability = {key: 0.0 for key in detection_probability}
 
     roi_analyze_result = {
     "video_name": file_name,
@@ -355,8 +341,8 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
     "second_detection_count": second_detection_count,
     "first_detection_rate": first_detection_rate,
     "second_detection_rate": second_detection_rate,
-    "raw_detection_probability": raw_detection_probabillity,
-    "detection_probability": detection_probabillity
+    "raw_detection_probability": raw_detection_probability,
+    "detection_probability": detection_probability
     }
 
     table_data = []
@@ -365,7 +351,7 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
             "region": region,
             "first_count": f"{first_detection_count.get(region, '0')} ({first_detection_rate.get(region, '0.00')}%)",
             "second_count": f"{second_detection_count.get(region, '0')} ({second_detection_rate.get(region, '0.00')}%)",
-            "confidence": "-" if detection_probabillity.get(region) is None else f"{detection_probabillity.get(region, '0.00')}%"
+            "confidence": "-" if detection_probability.get(region) is None else f"{detection_probability.get(region, '0.00')}%"
         }
         table_data.append(row)
 
@@ -389,13 +375,8 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
 
     return roi_analyze_result, table_data
 
-def analyze_roi_activation(video_dir, file_name, result, model):
-    return calculate_roi_scores(video_dir, file_name, result, model, _null_context())
-
-
-
 def run_gradcam_roi_analysis(video_path,file_name,result,checkpoint_name='checkpoint_v35',selected_model='EfficientNet-b0'):
-    model, cached_device, model_lock = get_cached_model(
+    model, _cached_device, model_lock = get_cached_model(
         "gradcam",
         selected_model,
         checkpoint_name

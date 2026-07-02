@@ -1,4 +1,4 @@
-from ..detector.all_grad_cam import (
+from ..detector.gradcam_roi import (
     run_gradcam_roi_analysis,
 )
 from .llm import run_llm

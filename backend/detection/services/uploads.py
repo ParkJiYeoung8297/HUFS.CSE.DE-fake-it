@@ -19,6 +19,7 @@ def save_uploaded_file(uploaded_file):
 
 def convert_video(input_path):
     output_filename = f"converted_{uuid.uuid4().hex}.mp4"
+    os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
     output_path = os.path.join(settings.MEDIA_ROOT, output_filename)
 
     subprocess.run([
