@@ -3,6 +3,10 @@ settings.py
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,django,react,visualstudiocode,venv
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,macos,django,react,visualstudiocode,venv
 
+model/ablation_results/
+model/output_log.txt
+model/text.md
+
 ### Django ###
 *.log
 *.pot
