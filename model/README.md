@@ -91,6 +91,8 @@ CHECKPOINT_DIR = PROJECT_ROOT / "checkpoints"
 ```
 
 Change only `PROJECT_ROOT` to match your own environment.
+Run the notebooks from the repository root so package imports such as
+`model.research.*` resolve without modifying `sys.path`.
 
 ---
 
@@ -103,10 +105,15 @@ without retraining.
 2. Place it at `<PROJECT_ROOT>/checkpoints/checkpoint_v35/checkpoint_v35.pt`.
 3. Download or prepare preprocessed videos under `<PROJECT_ROOT>/Dataset/ff++/test/<label>/<method>/`.
 4. Open `model_train_test.ipynb` and set `PROJECT_ROOT` in the first configuration cell.
-5. Run the FaceForensics++ test section to load `checkpoint_v35.pt` and evaluate videos.
-6. Open `Grad_CAM_and_ROI.ipynb`, set the same `PROJECT_ROOT`, and run one sample folder to generate Grad-CAM and ROI outputs.
+5. In the `Test data evaluation` cell, set `TEST_DATASET_KEY = "ffpp"`.
+6. Run the cell to load `checkpoint_v35.pt` and evaluate videos.
+   - Use `TEST_DATASET_KEY = "celebdf"` for Celeb-DF.
+   - Use `TEST_DATASET_KEY = "deeperforensics"` for DeeperForensics.
+   - Dataset-specific paths and output suffixes are grouped in `DATASET_TEST_CONFIGS`.
+7. Open `Grad_CAM_and_ROI.ipynb`, set the same `PROJECT_ROOT`, and run one sample folder to generate Grad-CAM and ROI outputs.
 
-This is the recommended smoke test before publishing or reviewing the repository.
+The cell writes prediction tables and plots under
+`<PROJECT_ROOT>/checkpoints/checkpoint_v35/`.
 
 ---
 
@@ -141,7 +148,8 @@ Run the model artifacts in this order:
 3. `model_train_test.ipynb`
    - Trains and evaluates CNN-LSTM models.
    - The final documented configuration is `EfficientNet-b0` with `checkpoint_v35`.
-   - Also includes FaceForensics++, Celeb-DF, and DeeperForensics test sections.
+   - Includes a single `Test data evaluation` cell. Change `TEST_DATASET_KEY`
+     to run FaceForensics++, Celeb-DF, or DeeperForensics.
 
 4. `Grad_CAM_and_ROI.ipynb`
    - Generates Grad-CAM videos.
@@ -150,7 +158,23 @@ Run the model artifacts in this order:
 5. `explanation_pairwise_test.ipynb`
    - Runs pairwise explanation preference evaluation.
    - The paper table uses correctly classified samples only (`N = 60`, 30 real and 30 fake videos).
-   - Uses detector modules directly and does not require Django settings.
+   - Uses model-side detector modules and does not require backend settings.
+
+---
+
+## Shared Notebook Code
+
+Common notebook code lives under `model/research/`:
+
+- `model.research.modeling`: shared CNN-LSTM model definition and device/model loading helpers
+- `model.research.metrics`: accuracy, EER, and pAUC helpers
+- `model.research.visualization`: common confusion-matrix, ROC, and t-SNE plotting helpers
+- `model.research.preprocessing`: shared video frame and face-cropping helpers
+- `model.research.pairwise_pipeline`: isolated preprocessing, inference, and
+  Grad-CAM/ROI utilities for the LLM explanation quality evaluation notebook
+
+The notebooks import these modules instead of redefining the same model and
+preprocessing utilities in multiple places.
 
 ---
 
@@ -240,15 +264,3 @@ Supported model and explanation outputs:
 - [Download trained models](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view?usp=sharing)
 
 ---
-
-## Final Check Before Release
-
-Before publishing the repository, run a smoke test rather than a full retraining:
-
-1. Load `checkpoint_v35.pt`.
-2. Run inference on one short preprocessed video.
-3. Generate Grad-CAM and ROI outputs for one sample.
-4. Run the backend/frontend upload flow with one test video.
-
-Full model retraining is optional because it is expensive, but the checkpoint
-load, inference, and explanation path should be verified end to end.
