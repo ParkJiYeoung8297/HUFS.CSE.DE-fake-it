@@ -1,124 +1,101 @@
+from pathlib import Path
+
 import cv2
-import torch
-import torchvision.transforms as T
 import numpy as np
-import torch.nn.functional as F
-from torchvision import models
-from torch import nn
-import os
-import glob
 import pandas as pd
-import torchvision
+import torch
 from torchvision import transforms
-from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
-import numpy as np
-import matplotlib.pyplot as plt
-import face_recognition
-import json
-import copy
-import random
-import time
-import sys
-
-# # 서버환경
-# input_file_path='/root/jiyeong/Dataset/ff++/train/*'
-# input_file_path2='/root/jiyeong/Dataset/DFDC/train/*'
-
-#로컬 환경
-input_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++(원본)/NeuralTextures'
-frame_file_path=f'/Users/jiyeong/Desktop/컴공 캡스톤/Dataset/ff++(원본)'
-frames=150
-
-data_list=[]
-
-sys.stdout.reconfigure(line_buffering=True)  # 모든 print문에 flush=true 설정 반영
-
-# 1. THis code is to check if the video is corrupted or not / 손상된 파일인지 확인 (파일 손상 시 삭제)
-def validate_video(vid_path,train_transforms):
-      transform = train_transforms
-      count = 20
-      video_path = vid_path
-      frames = []
-      a = int(100/count)
-      first_frame = np.random.randint(0,a)
-      temp_video = video_path.split('/')[-1]
-      for i,frame in enumerate(frame_extract(video_path)):
-        frames.append(transform(frame))
-        if(len(frames) == count):
-          break
-      frames = torch.stack(frames)
-      frames = frames[:count]
-      return frames
 
 
-#extract a from from video / 영상에서 프레임 추출
+# =========================
+# User configuration
+# =========================
+# Edit these values before running the script.
+INPUT_DIR = "/path/to/Dataset/ff++"
+OUTPUT_DIR = None
+FRAMES = 150
+SAMPLE_COUNT = 20
+
+
 def frame_extract(path):
-  vidObj = cv2.VideoCapture(path) 
-  success = 1
-  while success:
-      success, image = vidObj.read()
-      if success:
-          yield image
+    video = cv2.VideoCapture(str(path))
+    success = True
+    while success:
+        success, image = video.read()
+        if success:
+            yield image
+    video.release()
 
 
-im_size = 224
-mean = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
+def validate_video(video_path, transform, sample_count=20):
+    frames = []
+    for frame in frame_extract(video_path):
+        frames.append(transform(frame))
+        if len(frames) == sample_count:
+            break
 
-train_transforms = transforms.Compose([
-                                        transforms.ToPILImage(),
-                                        transforms.Resize((im_size,im_size)),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(mean,std)])
+    if len(frames) < sample_count:
+        raise ValueError(f"not enough readable frames: {len(frames)}")
 
-
-
-video_fil = glob.glob(f'{input_file_path}/*.mp4')  # 경로 변경
-data_list.append(input_file_path)
-# video_fil += glob.glob(f'{input_file_path2}/*.mp4') 
-# data_list.append(input_file_path2)
-
-print("Total no of videos :" , len(video_fil))
-# print(data_list)
-
-count = 0
-for i in video_fil:
-  try:
-    print(i)
-    count+=1
-    validate_video(i,train_transforms)
-  except:
-    print("Number of video processed: " , count ," Remaining : " , (len(video_fil) - count))
-    print("Corrupted video is : " , i)
-    continue
-print("no of validated_video : ",count)
-print("corrupted no of video : ",(len(video_fil) - count))
-
-frame_count = []
-short_frame=[]
-
-for video_file in reversed(video_fil): # 이거 앞에서 부터 하면 remove로 인해 frame_count랑 video_files 길이가 달라짐, 그래서 reversed 추가하여 뒤에서 부터 탐색!!
-  cap = cv2.VideoCapture(video_file)
-  if(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))<frames):  # frames 변수 위에서 조정
-    video_fil.remove(video_file)
-    short_frame.append(video_file)
-    continue
-
-  frame_count.append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
-
-# 리스트를 pandas DataFrame으로 변환
-df = pd.DataFrame(video_fil, columns=['video_file'])
-df2 =pd.DataFrame(short_frame, columns=['video_file'])
-# 엑셀 파일로 저장
-df.to_excel(f'{frame_file_path}/validate_video_files.xlsx', index=False)
-df2.to_excel(f'{frame_file_path}/delete_video_files.xlsx', index=False)
-print("엑셀 파일로 저장 완료!")
+    return torch.stack(frames)
 
 
-# print("frames are " , frame_count)
-print("Total no of video: " , len(frame_count))
-print('Average frame per video:',np.mean(frame_count))
-print('Short_frame_count : ', len(short_frame))
+def main():
+    input_dir = Path(INPUT_DIR)
+    output_dir = Path(OUTPUT_DIR) if OUTPUT_DIR else input_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    transform = transforms.Compose(
+        [
+            transforms.ToPILImage(),
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
+
+    video_files = sorted(input_dir.rglob("*.mp4"))
+    valid_videos = []
+    short_videos = []
+    corrupted_videos = []
+    frame_counts = []
+
+    print("Total videos:", len(video_files))
+    for index, video_file in enumerate(video_files, start=1):
+        try:
+            validate_video(video_file, transform, SAMPLE_COUNT)
+            cap = cv2.VideoCapture(str(video_file))
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            cap.release()
+
+            if frame_count < FRAMES:
+                short_videos.append(str(video_file))
+            else:
+                valid_videos.append(str(video_file))
+                frame_counts.append(frame_count)
+        except Exception as exc:
+            corrupted_videos.append({"video_file": str(video_file), "error": str(exc)})
+            print(f"Invalid video ({index}/{len(video_files)}): {video_file} - {exc}")
+
+    pd.DataFrame(valid_videos, columns=["video_file"]).to_excel(
+        output_dir / "validate_video_files.xlsx",
+        index=False,
+    )
+    pd.DataFrame(short_videos, columns=["video_file"]).to_excel(
+        output_dir / "delete_video_files.xlsx",
+        index=False,
+    )
+    pd.DataFrame(corrupted_videos).to_excel(
+        output_dir / "corrupted_video_files.xlsx",
+        index=False,
+    )
+
+    print("Validated videos:", len(valid_videos))
+    print("Short videos:", len(short_videos))
+    print("Corrupted videos:", len(corrupted_videos))
+    if frame_counts:
+        print("Average frame count:", float(np.mean(frame_counts)))
 
 
+if __name__ == "__main__":
+    main()
