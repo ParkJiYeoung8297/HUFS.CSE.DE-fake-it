@@ -32,7 +32,7 @@ backend/
 
 ## Model Checkpoint
 
-The trained model checkpoint is not tracked in Git. Before running inference, download the trained model and place it at:
+The trained model checkpoint is not tracked in Git. Before running inference, [download the trained model](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view) and place it at: 
 
 ```text
 backend/detection/detector/checkpoint_v35.pt
@@ -42,7 +42,13 @@ The backend currently uses `checkpoint_v35` with the `EfficientNet-b0` model con
 
 ## Local Settings
 
-`backend/config/settings.py` is treated as a local settings file and is not tracked in Git. Make sure the local settings include:
+`backend/config/settings.py` is treated as a local settings file and is not tracked in Git. Start from the provided example:
+
+```bash
+cp backend/config/settings.example.py backend/config/settings.py
+```
+
+Make sure the local settings include:
 
 - `detection`, `corsheaders`, and `rest_framework` in `INSTALLED_APPS`
 - `MEDIA_URL = "/media/"`
