@@ -3,6 +3,8 @@ import torch.nn as nn
 from torchvision import models
 from torchvision.models import EfficientNet_B0_Weights, efficientnet_b0
 
+from .device import get_device
+
 try:
     import timm
 except ImportError:
@@ -41,7 +43,6 @@ class ResearchModel(nn.Module):
         else:
             raise ValueError(f"Unsupported model_name: {self.model_name}")
 
-        print("latent_dim:", self.latent_dim)
         self.lstm = nn.LSTM(self.latent_dim, hidden_dim, lstm_layers, bidirectional)
         self.relu = nn.LeakyReLU()
         self.dp = nn.Dropout(dropout)
@@ -60,19 +61,9 @@ class ResearchModel(nn.Module):
         return fmap, self.binary_classifier(self.dp(pooled)), self.method_classifier(self.dp(pooled))
 
 
-def get_device():
-    if torch.backends.mps.is_available():
-        print("MPS is available. Using MPS.")
-        return torch.device("mps")
-    if torch.cuda.is_available():
-        print("CUDA is available. Using CUDA.")
-        return torch.device("cuda")
-    print("CUDA and MPS not available. Using CPU.")
-    return torch.device("cpu")
-
-
 def load_model(checkpoint_path, model_name="EfficientNet-b0", device=None, dropout=0.5):
-    device = device or get_device()
+    if device is None:
+        device = get_device()
     model = ResearchModel(
         num_binary_classes=2,
         num_method_classes=7,
