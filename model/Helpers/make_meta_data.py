@@ -89,28 +89,40 @@ def collect_metadata(input_glob, base_dir):
     return rows
 
 
-def main():
-    output_dir = Path(OUTPUT_DIR)
+def build_metadata(
+    input_glob=INPUT_GLOB,
+    base_dir=BASE_DIR,
+    output_dir=OUTPUT_DIR,
+    csv_name=CSV_NAME,
+    excel_name=EXCEL_NAME,
+    csv_header=CSV_HEADER,
+):
+    output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    rows = collect_metadata(INPUT_GLOB, BASE_DIR)
+    rows = collect_metadata(input_glob, base_dir)
     full_df = pd.DataFrame(rows)
     compact_df = full_df[["file_name", "label", "method"]]
 
-    excel_path = output_dir / EXCEL_NAME
-    csv_path = output_dir / CSV_NAME
+    excel_path = output_dir / excel_name
+    csv_path = output_dir / csv_name
 
     full_df.to_excel(excel_path, index=False, engine="openpyxl")
     compact_df.to_csv(
         csv_path,
         index=False,
-        header=CSV_HEADER,
+        header=csv_header,
         encoding="utf-8-sig",
     )
 
     print(f"Metadata rows: {len(full_df)}")
     print(f"Excel metadata saved to: {excel_path}")
     print(f"Training CSV saved to: {csv_path}")
+    return full_df, csv_path, excel_path
+
+
+def main():
+    build_metadata()
 
 
 if __name__ == "__main__":

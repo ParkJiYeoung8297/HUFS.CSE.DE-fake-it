@@ -100,6 +100,35 @@ def _checkpoint_output_path(checkpoint_path, checkpoint_name, suffix):
     return Path(checkpoint_path) / f"{checkpoint_name}_{suffix}.png"
 
 
+def save_loss_curve(train_loss_avg, test_loss_avg, num_epochs, checkpoint_path, checkpoint_name):
+    loss_train = train_loss_avg
+    loss_val = test_loss_avg
+    print(num_epochs)
+    epochs = range(1, num_epochs + 1)
+    plt.clf()
+    plt.plot(epochs, loss_train, "g", label="Training loss")
+    plt.plot(epochs, loss_val, "b", label="validation loss")
+    plt.title("Training and Validation loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(Path(checkpoint_path) / f"{checkpoint_name}_loss_plot.png")
+
+
+def save_accuracy_curve(train_accuracy, test_accuracy, num_epochs, checkpoint_path, checkpoint_name):
+    loss_train = train_accuracy
+    loss_val = test_accuracy
+    epochs = range(1, num_epochs + 1)
+    plt.clf()
+    plt.plot(epochs, loss_train, "g", label="Training accuracy")
+    plt.plot(epochs, loss_val, "b", label="validation accuracy")
+    plt.title("Training and Validation accuracy")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+    plt.legend()
+    plt.savefig(Path(checkpoint_path) / f"{checkpoint_name}_accuracy_plot.png")
+
+
 def save_binary_confusion_matrix(y_true, y_pred, checkpoint_path, checkpoint_name, suffix="plot"):
     cm = confusion_matrix(y_true, y_pred)
     print("\n")
