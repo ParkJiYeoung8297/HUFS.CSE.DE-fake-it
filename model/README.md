@@ -1,266 +1,191 @@
 # Model
 
-This directory contains the model-side research artifacts for **DE-Fake it**:
-preprocessing, CNN-LSTM training/evaluation, Grad-CAM + ROI explainability, and
-pairwise explanation evaluation.
+This directory contains core deep learning pipeline for **DE-Fake it**:
 
-Google Colab is recommended for the notebooks because model training and
+- Data preprocessing
+- CNN-LSTM model training
+- Model evaluation
+- Grad-CAM visualization and ROI analysis
+- LLM prompt generation from ROI statistics
+
+
+[Google Colab](https://colab.research.google.com/) is recommended for the notebooks because training, evaluation, and
 Grad-CAM generation are GPU-heavy.
-
-For paper reproduction, the notebooks are the primary artifacts. Helper scripts
-are optional utilities for rebuilding metadata or checking local video files.
 
 ---
 
-## Final Model Used by the Application
 
-The deployed backend uses the following configuration:
+## Pretrained Model
+
+### Model Configuration
 
 | Item | Value |
 | --- | --- |
 | Backbone | EfficientNet-b0 |
 | Temporal module | LSTM |
-| Final checkpoint | `checkpoint_v35.pt` |
-| Input size | 224 × 224 |
-| Frame count | 150 preprocessed video frames |
+| Input size | 224 x 224 |
+| Input sequence length | 10 frames |
 | Binary labels | `FAKE = 0`, `REAL = 1` |
 | Method classes | `original`, `Deepfakes`, `FaceShifter`, `FaceSwap`, `NeuralTextures`, `Face2Face`, `others` |
+| Checkpoint | `checkpoint_v35_best.pt` |
 
-Download the trained checkpoint from the project link below and place it at:
+
+### Download
+
+Download the pretrained checkpoint from Google Drive: 
+
+**[checkpoint_v35_best.pt](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view?usp=sharing)**
+
+Place the downloaded file at:
+
+```text
+<PROJECT_ROOT>/checkpoints/checkpoint_v35/checkpoint_v35_best.pt
+```
+
+If you also want to run the web demo, copy the checkpoint to:
 
 ```text
 backend/detection/detector/checkpoint_v35.pt
 ```
 
-For notebook-based evaluation, place the same checkpoint under:
-
-```text
-<PROJECT_ROOT>/checkpoints/checkpoint_v35/checkpoint_v35.pt
-```
-
 ---
 
-## Dataset Sources
+## Expected Project Layout
 
-The experiments use videos from:
-
-- [FaceForensics++](https://github.com/ondyari/FaceForensics)
-- [Celeb-DF](https://github.com/yuezunli/celeb-deepfakeforensics)
-- [DeeperForensics](https://github.com/EndlessSora/DeeperForensics-1.0/tree/master)
-
-Expected dataset layout for the notebooks. The repository includes a local
-`Dataset/README.md` guide, while actual dataset files are ignored by Git.
+Set the `PROJECT_ROOT` variable in each notebook to the repository root.
 
 ```text
 <PROJECT_ROOT>/
 ├── Dataset/
-│   ├── FaceForensics++_C23/
 │   ├── ff++/
 │   │   ├── train/
-│   │   │   ├── fake/
-│   │   │   │   ├── Deepfakes/
-│   │   │   │   ├── Face2Face/
-│   │   │   │   ├── FaceShifter/
-│   │   │   │   ├── FaceSwap/
-│   │   │   │   └── NeuralTextures/
-│   │   │   └── real/
-│   │   │       └── original/
 │   │   └── test/
-│   │       ├── fake/
-│   │       │   ├── Deepfakes/
-│   │       │   ├── Face2Face/
-│   │       │   ├── FaceShifter/
-│   │       │   ├── FaceSwap/
-│   │       │   └── NeuralTextures/
-│   │       └── real/
-│   │           └── original/
-│   ├── celeb-df/
-│   ├── DeeperForensics/
-│   └── ff++(grad-cam_v2)/
-└── checkpoints/
-    └── checkpoint_v35/
-        └── checkpoint_v35.pt
+│   └── ff++(grad-cam)/
+├── checkpoints/
+│   └── checkpoint_v35/
+│       └── checkpoint_v35_best.pt
+└── model/
 ```
 
-Each notebook has a configuration cell near the top:
-
-```python
-PROJECT_ROOT = Path("/content/drive/MyDrive/DE-Fake-it")
-DATA_ROOT = PROJECT_ROOT / "Dataset"
-CHECKPOINT_DIR = PROJECT_ROOT / "checkpoints"
-```
-
-Change only `PROJECT_ROOT` to match your own environment.
-Run the notebooks from the repository root so package imports such as
-`model.research.*` resolve without modifying `sys.path`.
-
----
-
-## Quick Reproduction with the Pretrained Model
-
-Use this path when you want to reproduce inference and explanation outputs
-without retraining.
-
-1. Download the trained model from the link below.
-2. Place it at `<PROJECT_ROOT>/checkpoints/checkpoint_v35/checkpoint_v35.pt`.
-3. Download or prepare preprocessed videos under `<PROJECT_ROOT>/Dataset/ff++/test/<label>/<method>/`.
-4. Open `model_train_test.ipynb` and set `PROJECT_ROOT` in the first configuration cell.
-5. In the `Test data evaluation` cell, set `TEST_DATASET_KEY = "ffpp"`.
-6. Run the cell to load `checkpoint_v35.pt` and evaluate videos.
-   - Use `TEST_DATASET_KEY = "celebdf"` for Celeb-DF.
-   - Use `TEST_DATASET_KEY = "deeperforensics"` for DeeperForensics.
-   - Dataset-specific paths and output suffixes are grouped in `DATASET_TEST_CONFIGS`.
-7. Open `Grad_CAM_and_ROI.ipynb`, set the same `PROJECT_ROOT`, and run one sample folder to generate Grad-CAM and ROI outputs.
-
-The cell writes prediction tables and plots under
-`<PROJECT_ROOT>/checkpoints/checkpoint_v35/`.
-
----
-
-## Full Reproduction from Raw Videos
-
-Use this path only when rebuilding the processed dataset from raw videos.
-
-1. Put raw FaceForensics++ videos under `Dataset/FaceForensics++_C23/`.
-2. Run `preprocessing.ipynb`.
-   - The notebook processes one manipulation method at a time.
-   - Change `DATA_METHOD` in the configuration cell and repeat for each method, such as `Deepfakes`, `Face2Face`, `FaceShifter`, `FaceSwap`, and `NeuralTextures`.
-3. Run `Helpers/validate_video.py` to identify unreadable or short videos.
-4. Run `Helpers/cut_frame.py` if you need fixed-length MJPEG videos while preserving the folder structure.
-5. Run `Helpers/make_meta_data.py` to generate `Global_metadata.csv`.
-6. Run `model_train_test.ipynb` for training and evaluation.
-
----
-
-## Reproduction Order
-
-Run the model artifacts in this order:
-
-1. `preprocessing.ipynb`
-   - Crops faces with MTCNN.
-   - Resizes face frames to 224 × 224.
-   - Saves preprocessed videos for training and evaluation.
-
-2. `Helpers/make_meta_data.py`
-   - Generates `Global_metadata.csv` and full Excel metadata.
-   - The compact CSV is used by `model_train_test.ipynb`.
-
-3. `model_train_test.ipynb`
-   - Trains and evaluates CNN-LSTM models.
-   - The final documented configuration is `EfficientNet-b0` with `checkpoint_v35`.
-   - Includes a single `Test data evaluation` cell. Change `TEST_DATASET_KEY`
-     to run FaceForensics++, Celeb-DF, or DeeperForensics.
-
-4. `Grad_CAM_and_ROI.ipynb`
-   - Generates Grad-CAM videos.
-   - Computes facial ROI activation scores.
-
-5. `explanation_pairwise_test.ipynb`
-   - Runs pairwise explanation preference evaluation.
-   - The paper table uses correctly classified samples only (`N = 60`, 30 real and 30 fake videos).
-   - Uses model-side detector modules and does not require backend settings.
-
----
-
-## Shared Notebook Code
-
-Common notebook code lives under `model/research/`:
-
-- `model.research.modeling`: shared CNN-LSTM model definition and device/model loading helpers
-- `model.research.metrics`: accuracy, EER, and pAUC helpers
-- `model.research.visualization`: common confusion-matrix, ROC, and t-SNE plotting helpers
-- `model.research.preprocessing`: shared video frame and face-cropping helpers
-- `model.research.pairwise_pipeline`: isolated preprocessing, inference, and
-  Grad-CAM/ROI utilities for the LLM explanation quality evaluation notebook
-
-The notebooks import these modules instead of redefining the same model and
-preprocessing utilities in multiple places.
-
----
-
-## Metadata Schema
-
-`Global_metadata.csv` is expected in this compact column order:
+The FaceForensics++ directory is expected to have the following structure:
 
 ```text
-file_name,label,method
+<PROJECT_ROOT>/Dataset/ff++/test/
+├── fake/
+│   ├── Deepfakes/
+│   ├── Face2Face/
+│   ├── FaceShifter/
+│   ├── FaceSwap/
+│   └── NeuralTextures/
+└── real/
+    └── original/
 ```
 
-For compatibility with the training notebook, the helper writes the compact CSV
-without a header by default. If you change `CSV_HEADER = True` in the helper,
-also update the notebook CSV loading code.
-
-The full Excel metadata contains:
-
-| Column | Meaning |
-| --- | --- |
-| `file_name` | Video filename |
-| `folder_path` | Path relative to the dataset root |
-| `label` | `REAL`, `FAKE`, or `unknown` |
-| `split` | `train`, `validation`, `test`, or `unknown` |
-| `dataset` | `ff++`, `celeb-df`, `deeperforensics`, `dfdc`, or `unknown` |
-| `method` | Deepfake manipulation method |
-| `frame` | Number of frames reported by OpenCV |
+For instructions on downloading and preparing the datasets used in this project, please refer to **[`../Dataset/README.md`](../Dataset/README.md)**.
 
 ---
 
-## Helper Scripts
+## Runtime Notes
 
-The helper scripts are optional. Pretrained-model reproduction does not require
-running them.
+The notebooks are designed to run on Google Colab.
 
-Each helper script has a **User configuration** block at the top. The simplest
-workflow is to edit those variables and run the script directly.
+Some notebooks install the required packages in their first cells (e.g., `facenet-pytorch` and `face_alignment`).
+
+A GPU runtime is recommended.
+
+---
+
+
+# Workflow
+
+The typical workflow for reproducing our model pipeline is:
+
+```text
+Raw videos
+      │
+      ▼
+preprocessing.ipynb
+      │
+      ▼
+Processed Dataset
+      │
+      ▼
+model_train_test.ipynb
+      │
+      ├── checkpoint_v35_best.pt
+      └── (test)_checkpoint_v35_predictions_ff++.xlsx
+                     │
+                     ▼
+gradcam_and_roi.ipynb
+                     │
+                     ├── ROI images
+                     └── video_roi_result.json
+                                │
+                                ▼
+Helpers/make_llm_prompt.py
+                                │
+                                ▼
+LLM Prompt
+```
+
+
+---
+
+# Notebook Guide
+
+| Notebook | Purpose | Input | Output |
+| --- | --- | --- | --- |
+| `preprocessing.ipynb` | Face detection and preprocessing | Raw videos | Processed dataset |
+| `model_train_test.ipynb` | Train, validate, and evaluate the model | Processed dataset | Checkpoints, metrics, prediction file |
+| `cross_dataset_evaluation.ipynb` | Evaluate the trained model on external datasets (e.g., Celeb-DF, DeeperForensics) | Pretrained checkpoint + external preprocessed dataset | Prediction file and benchmark metrics |
+| `gradcam_and_roi.ipynb` | Generate Grad-CAM visualizations and ROI statistics | Prediction file | ROI images, ROI summaries, JSON |
+
+---
+
+# Quick Start
+
+Using the pretrained model:
+
+1. Download `checkpoint_v35_best.pt`.
+2. Prepare the FaceForensics++ dataset.
+3. Set `PROJECT_ROOT`, `DATA_ROOT`, and `CHECKPOINT_NAME` in the notebook configuration cells.
+4. Run the FaceForensics++ test section of `model_train_test.ipynb`.
+5. Run `gradcam_and_roi.ipynb`.
+6. Run `Helpers/make_llm_prompt.py`.
+
+Expected key outputs:
+
+- `<PROJECT_ROOT>/checkpoints/checkpoint_v35/(test)_checkpoint_v35_predictions_ff++.xlsx`
+- `<PROJECT_ROOT>/Dataset/ff++(grad-cam)/.../*_video_roi_result.json`
+
+Classification metrics such as confusion matrix, ROC-AUC, EER, and pAUC are printed or saved by `model_train_test.ipynb` and `cross_dataset_evaluation.ipynb`.
+
+
+---
+
+# Helper Scripts
+
+| Script | Purpose |
+| --- | --- |
+| `make_meta_data.py` | Generate metadata files |
+| `validate_video.py` | Validate unreadable or corrupted videos |
+| `cut_frame.py` | Create fixed-length clips |
+| `make_llm_prompt.py` | Generate LLM prompts from ROI JSON |
+
+Example:
 
 ```bash
 python model/Helpers/make_meta_data.py
 python model/Helpers/validate_video.py
 python model/Helpers/cut_frame.py
+python model/Helpers/make_llm_prompt.py
 ```
 
-The configurable values include dataset paths, output paths, and frame count.
-`validate_video.py` and `cut_frame.py` search input directories recursively with
-`rglob("*.mp4")`. `cut_frame.py` preserves the relative folder structure under
-the output directory.
-
 ---
 
-## Training Details
+## Notes
 
-- Split: 80/20 train/validation split in the notebook
-- Random seed: `42`
-- Epochs: `30`
-- Sequence length during notebook training: `10`
-- Image normalization: ImageNet mean/std
-- Loss: binary classification loss + method classification loss
-- Class balancing: class weighting for real/fake imbalance
-- Candidate backbones: ResNeXt50-32x4d, Xception, EfficientNet-b0
-- Final application checkpoint: EfficientNet-b0, `checkpoint_v35`
-
----
-
-## Outputs
-
-Supported model and explanation outputs:
-
-- Binary prediction: Real/Fake
-- Multi-class method prediction
-- Grad-CAM heatmap video
-- ROI activation table
-- LLM-based explanation text
-- Pairwise explanation preference summaries
-
----
-
-## Preprocessed Data
-
-- [FaceForensics++ Fake processed videos](https://drive.google.com/file/d/1KEMw4JPPdlmhFk3QpB2IS0UAbrURudPG/view?usp=drive_link)
-- [FaceForensics++ Real processed videos](https://drive.google.com/file/d/1GtuEiGhtL0nIC0Y6d0rBv-QtRfwSaAC6/view?usp=drive_link)
-- [Celeb-DF Fake processed videos](https://drive.google.com/file/d/1tgfoaf2LV48ziNFqpXH7nm1USW1hfPUC/view?usp=drive_link)
-- [Celeb-DF Real processed videos](https://drive.google.com/file/d/1Rlipbby2MXGWFaoay6th6lSDXMzu5Bg8/view?usp=drive_link)
-
-## Trained Models
-
-- [Download trained models](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view?usp=sharing)
-
+- `final_probability` is the final video-level prediction probability used in LLM prompt generation.
+- `cam_score` is a frame-level Grad-CAM activation score used only for ROI aggregation.
+- The backend uses the same trained checkpoint and LLM prompt generation pipeline.
 ---

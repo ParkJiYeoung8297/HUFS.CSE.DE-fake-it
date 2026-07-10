@@ -45,13 +45,50 @@ Dataset/
 ├── FaceForensics++_C23/  # raw FaceForensics++ videos
 ├── ff++/                 # processed FaceForensics++ videos
 ├── celeb-df/             # processed Celeb-DF videos
-└── DeeperForensics/      # processed DeeperForensics videos
+└── deeperForensics/      # processed DeeperForensics videos
 ```
 
 
-For training and evaluation, processed videos should follow:
+FaceForensics++ keeps the manipulation method folders inside `fake/`.
+
 ```text
 Dataset/ff++/
+├── train/
+│   ├── real/
+│   │   └── original/
+│   └── fake/
+│       ├── Deepfakes/
+│       ├── Face2Face/
+│       ├── FaceShifter/
+│       ├── FaceSwap/
+│       └── NeuralTextures/
+└── test/
+    ├── real/
+    │   └── original/
+    └── fake/
+        ├── Deepfakes/
+        ├── Face2Face/
+        ├── FaceShifter/
+        ├── FaceSwap/
+        └── NeuralTextures/
+```
+
+External datasets such as Celeb-DF and DeeperForensics do not use the
+FaceForensics++ manipulation-method subfolders. They should be organized only
+by split and binary label:
+
+```text
+Dataset/celeb-df/
+├── train/
+│   ├── real/
+│   └── fake/
+└── test/
+    ├── real/
+    └── fake/
+```
+
+```text
+Dataset/deeperForensics/
 ├── train/
 │   ├── real/
 │   └── fake/

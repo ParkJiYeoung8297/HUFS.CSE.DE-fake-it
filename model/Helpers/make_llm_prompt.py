@@ -4,7 +4,7 @@ import pandas as pd
 
 
 # =========================
-# Configuration
+# User configuration
 # =========================
 # Edit these values before running the script.
 
