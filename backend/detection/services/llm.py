@@ -21,7 +21,7 @@ def build_llm_prompt(summary):
     logger.debug("LLM prompt summary: %s", summary)
 
     prompt = (
-        f"모델 예측 결과: REAL/FAKE={summary['binary_pred']}, 확률={summary['cam_score']}, "
+        f"모델 예측 결과: REAL/FAKE={summary['binary_pred']}, 확률={summary['final_probability']}, "
         f"딥페이크 기법 분류={summary['method_pred']}.\n"
         "참고: original은 위조 흔적이 없는 원본 영상, others는 FaceForensics++의 5가지 기법 외 위조 방식입니다.\n"
         f"아래는 영상 {summary['video_name']}에 대한 Grad-CAM 기반 ROI 활성도 통계입니다. "

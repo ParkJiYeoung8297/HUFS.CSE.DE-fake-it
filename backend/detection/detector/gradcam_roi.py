@@ -326,7 +326,7 @@ def calculate_roi_scores(video_dir, file_name, result, model, model_lock):
     roi_analyze_result = {
     "video_name": file_name,
     "binary_pred":result["Prediction"],
-    "cam_score":result["Probability"],
+    "final_probability":result["Probability"],
     "method_pred":result["Method"],
     "facial_region": facial_region,
     "first_detection_count": first_detection_count,
