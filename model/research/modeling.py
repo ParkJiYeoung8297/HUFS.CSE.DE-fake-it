@@ -47,6 +47,8 @@ class ResearchModel(nn.Module):
         self.relu = nn.LeakyReLU()
         self.dp = nn.Dropout(dropout)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
+
+        # 두 개의 출력: 이진 분류와 method 분류
         self.binary_classifier = nn.Linear(hidden_dim, num_binary_classes)
         self.method_classifier = nn.Linear(hidden_dim, num_method_classes)
 

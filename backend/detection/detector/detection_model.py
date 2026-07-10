@@ -5,13 +5,16 @@ import torch
 from torchvision import transforms
 import os
 import numpy as np
-from .model_cache import get_cached_model
+from pathlib import Path
+
+from .model import Model
 
 
 logger = logging.getLogger(__name__)
 
 CPU_THREAD_LIMIT = int(os.environ.get("DEFAKE_CPU_THREADS", "4"))
 INFERENCE_BATCH_SIZE = int(os.environ.get("DEFAKE_INFERENCE_BATCH_SIZE", "16"))
+CHECKPOINT_DIR = Path(__file__).resolve().parent
 
 torch.set_num_threads(CPU_THREAD_LIMIT)
 try:
@@ -21,14 +24,32 @@ except RuntimeError:
 cv2.setNumThreads(1)
 
 
-def _predict_batch(input_tensors, model, device, model_lock):
+def _get_device():
+    return torch.device("mps") if torch.backends.mps.is_available() else (
+        torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    )
+
+
+def _load_model(selected_model, checkpoint_name, device):
+    model = Model(
+        num_binary_classes=2,
+        num_method_classes=7,
+        model_name=selected_model
+    ).to(device)
+    model.load_state_dict(
+        torch.load(CHECKPOINT_DIR / f"{checkpoint_name}.pt", map_location=device)
+    )
+    model.eval()
+    return model
+
+
+def _predict_batch(input_tensors, model, device):
     if not input_tensors:
         return [], [], [], []
 
     with torch.inference_mode():
         batch_tensor = torch.stack(input_tensors).unsqueeze(1).to(device).float()
-        with model_lock:
-            _, output_bin, output_method = model(batch_tensor)
+        _, output_bin, output_method = model(batch_tensor)
 
         probs = torch.softmax(output_bin, dim=1)
         method_probs = torch.softmax(output_method, dim=1)
@@ -47,11 +68,8 @@ def _predict_batch(input_tensors, model, device, model_lock):
 
 def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint_name='checkpoint_v35'):
 
-    model, device, model_lock = get_cached_model(
-        "inference",
-        selected_model,
-        checkpoint_name
-    )
+    device = _get_device()
+    model = _load_model(selected_model, checkpoint_name, device)
     logger.debug("Using device for inference: %s", device)
 
     if not os.path.exists(video_path):
@@ -81,7 +99,7 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
         batch.append(transform(frame))
 
         if len(batch) >= INFERENCE_BATCH_SIZE:
-            batch_probs, batch_preds, batch_methods, batch_scores = _predict_batch(batch, model, device, model_lock)
+            batch_probs, batch_preds, batch_methods, batch_scores = _predict_batch(batch, model, device)
             frame_probs.extend(batch_probs)
             frame_preds.extend(batch_preds)
             method_preds.extend(batch_methods)
@@ -91,7 +109,7 @@ def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint
         success, frame = cap.read()
 
     if batch:
-        batch_probs, batch_preds, batch_methods, batch_scores = _predict_batch(batch, model, device, model_lock)
+        batch_probs, batch_preds, batch_methods, batch_scores = _predict_batch(batch, model, device)
         frame_probs.extend(batch_probs)
         frame_preds.extend(batch_preds)
         method_preds.extend(batch_methods)

@@ -8,13 +8,11 @@ from django.views.decorators.csrf import csrf_exempt
 from .services.llm import warm_up_llm
 from .services.pipeline import analyze_uploaded_video
 from .services.uploads import convert_video, save_uploaded_file
-from .detector.model_cache import preload_cached_models
 
 
 logger = logging.getLogger(__name__)
 
 
-preload_cached_models()
 if os.environ.get("DEFAKE_LLM_WARMUP", "0") == "1":
     threading.Thread(target=warm_up_llm, daemon=True).start()
 
