@@ -1,98 +1,140 @@
 # Seeing Through Deepfakes: An Explainable Multi-Task Detection Framework with Deep Learning and Large Language Models
 
----
+![Python](https://img.shields.io/badge/Python-3.11.3-3776AB?logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-5.0.1-092E20?logo=django&logoColor=white)
+![React](https://img.shields.io/badge/React-19.1.0-61DAFB?logo=react&logoColor=20232A)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.2.2-EE4C2C?logo=pytorch&logoColor=white)
 
-## 1. Introduction
-This project aims to build an image classification system for video-based Deepfake detection and provide both visual and textual explanations of the model's predictions.
+We release the code for **Seeing Through Deepfakes**, an explainable deepfake detection framework that connects video classification, visual evidence, facial-region analysis, and natural-language explanation generation.
 
-We achieve this by training a CNN-LSTM architecture on the FaceForensics++ (FF++) dataset. Frame-level features are extracted using a pretrained CNN backbone (such as EfficientNet or ResNeXt), and a temporal LSTM layer processes the sequence to classify each video.
+The project is designed around one question: how can a deepfake detector make its decision easier to inspect? Instead of only returning a real/fake label, the pipeline also produces Grad-CAM visualizations, facial ROI activation scores, and an LLM-generated explanation grounded in the model outputs.
 
-In addition to binary classification (Real vs. Fake), the model also performs multi-class classification to identify the specific Deepfake generation technique, such as Face2Face, FaceSwap, Deepfakes, NeuralTextures, or FaceShifter.
-
-To interpret the results, we apply Grad-CAM for visual explanation, compute region-based activation scores using facial alignment, and generate natural language explanations using an LLM (via Ollama).
-
-## 2. Directory Structure
+```text
+Video input
+  -> multi-task CNN-LSTM detection
+  -> Grad-CAM visual evidence
+  -> facial ROI activation analysis
+  -> LLM-generated textual explanation
+  -> web-based inspection interface
 ```
+
+The detection model jointly performs:
+
+- **Binary classification:** real vs. fake
+- **Manipulation-type classification:** Deepfakes, Face2Face, FaceSwap, NeuralTextures, FaceShifter, or original
+
+## Project Highlights
+
+- Multi-task video-based deepfake detection using a CNN-LSTM architecture
+- Comparison of ResNeXt50-32x4d, Xception, and EfficientNet-b0 backbones
+- Grad-CAM-based visual explanation for model-sensitive regions
+- Facial ROI activation scoring for region-level interpretability
+- LLM-based explanation generation from prediction, method, and ROI evidence
+- React + Django demo application for reviewing predictions and explanations together
+
+## Directory Structure
+
+```text
 HUFS.CSE.DE-fake-it/
-├── backend/          # Django backend server
-│   └── README.md     # Backend setup, API, logging, and benchmark guide
-├── frontend/         # React frontend application
-│   └── README.md     # Frontend setup and UI/API guide
-├── model/            # Model training and explanation notebooks
-│   └── README.md     # Dataset, training, prediction, and XAI guide
-├── requirements.txt  # Python dependency file
-└── README.md         # Project overview documentation
-
+├── backend/          # Django inference API and explanation pipeline
+├── frontend/         # React demo interface
+├── model/            # Research notebooks, training, evaluation, and XAI
+├── Dataset/          # Dataset layout and preparation guide
+├── requirements.txt  # Shared Python dependencies
+└── README.md         # Project-level overview
 ```
-1. backend
-  - This is the Django-based backend server. It includes APIs that process uploaded videos and return prediction results using the trained model.
 
-2. frontend
-  - This is the React-based user interface. It handles video uploads and displays prediction results to the user.
+Each component has its own guide. The root README keeps only the project-level overview so that setup and implementation details stay close to the code they describe.
 
-3. model
-  - Contains modules for training the deepfake detection model, performing Grad-CAM interpretation, ROI-based visualization, and generating LLM-based textual explanations.
+| Guide | Use this for |
+| --- | --- |
+| [`frontend/README.md`](frontend/README.md) | Running and building the React interface |
+| [`backend/README.md`](backend/README.md) | Running the Django server, API behavior, LLM setup, and outputs |
+| [`model/README.md`](model/README.md) | Checkpoints, notebooks, training, evaluation, Grad-CAM, ROI, and explanation prompt generation |
+| [`Dataset/README.md`](Dataset/README.md) | Dataset sources, expected structure, and preprocessing notes |
 
-For implementation-specific instructions, see the README files inside `backend/`, `frontend/`, and `model/`.
+## System Architecture
 
-
-
-## 3. System Architecture
+The figure below summarizes the complete inference and explainability pipeline used in the deployed system.
 
 <p align="center">
-  <img width="100%" height="100%" alt="image" src="https://github.com/user-attachments/assets/e0991824-4b42-4934-9a9c-b7cbb07d609f" />
+  <img width="100%" height="100%" alt="System architecture" src="https://github.com/user-attachments/assets/e0991824-4b42-4934-9a9c-b7cbb07d609f" />
 </p>
 
+## Demo
 
-## 4. Demo 
-### You can watch the [youtube video](https://youtu.be/ZVpRHxDxAwg) for demo
+The demo lets a user upload a video, preview it, run deepfake analysis, and inspect prediction results with Grad-CAM videos, ROI scores, and a text explanation.
+
+Watch the demo video on [YouTube](https://youtu.be/ZVpRHxDxAwg).
 
 <p align="left">
   <a href="https://youtu.be/ZVpRHxDxAwg" target="_blank">
-    <img width="800" height="450" src="https://github.com/user-attachments/assets/f4037891-c935-411f-a0e9-9f7865603690" />
+    <img width="800" height="450" alt="Demo video thumbnail" src="https://github.com/user-attachments/assets/f4037891-c935-411f-a0e9-9f7865603690" />
   </a>
 </p>
 
 
 
+## Quick Start
 
+To run the local demo, prepare the shared Python dependencies, place the pretrained checkpoint where the backend expects it, then start the backend and frontend applications.
 
-## 5. Our Results
+```bash
+pip install -r requirements.txt
+```
 
-- Binary Classification (Real vs Fake)
+Required checkpoint path for the demo:
 
-| Model               | Accuracy | Macro F1 | Macro Precision | Macro Recall |
-| ------------------- | -------- | -------- | --------------- | ------------ |
-| ResNeXt50-32x4d     | 0.94     | 0.93     | 0.94            | 0.91         |
-| Xception            | 0.95     | 0.94     | 0.95            | 0.93         |
-| **EfficientNet-b0** | **0.95** | **0.94** | **0.93**        | **0.95**     |
+```text
+backend/detection/detector/checkpoint_v35_best.pt
+```
 
-- Multi-class Classification (5-way)
-  
-| Model               | Accuracy | Macro F1 | Macro Precision | Macro Recall |
-| ------------------- | -------- | -------- | --------------- | ------------ |
-| ResNeXt50-32x4d     | 0.93     | 0.80     | 0.80            | 0.81         |
-| Xception            | 0.93     | 0.80     | 0.80            | 0.80         |
-| **EfficientNet-b0** | **0.94** | **0.81** | **0.82**        | **0.81**     |
+Then start the backend and frontend using the [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md) guides.
 
-- XAI + ROI Activation
+By default, the frontend runs at `http://localhost:3000` and the backend API runs at `http://localhost:8000`.
 
-<p align="left">
-  <img width="80%" height="80%" alt="image" src="https://github.com/user-attachments/assets/edd9c9b5-e3a1-45b5-925f-ffe29d8f76ca" />
-</p>
+## Model And Data
 
-- LLM Explanation
+The deployed demo uses the final EfficientNet-b0 + LSTM checkpoint, `checkpoint_v35_best.pt`. The checkpoint is available from [Google Drive](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view).
 
-<p align="left">
-  <img width="80%" height="80%" alt="image" src="https://github.com/user-attachments/assets/6a77534f-236b-4864-8b93-6742ddb7fd39" />
-</p>
+Experiments use videos from FaceForensics++, Celeb-DF, and DeeperForensics. Dataset files are not tracked in Git because they are large and have separate access conditions. See [`Dataset/README.md`](Dataset/README.md) for local layout and rebuilding notes.
 
-- Pairwise Preference Evaluation of Explanation Settings
+## Reproducing Results
 
-We additionally evaluated whether richer explanation settings are preferred by LLM-based judgment. The pairwise test compares binary-only explanations, binary + method explanations, and binary + method + ROI explanations on correctly classified samples only (`N = 60`, 30 real and 30 fake videos).
+The research workflow is documented in [`model/README.md`](model/README.md). At a high level, reproduction follows this order:
+
+1. Prepare and preprocess datasets
+2. Generate metadata
+3. Train or evaluate the multi-task detector
+4. Run Grad-CAM and ROI analysis
+5. Evaluate explanation preferences
+
+The corresponding notebooks and helper scripts are maintained under [`model/`](model/).
+
+## Results
+
+### Binary Classification
+
+| Model | Accuracy | Macro F1 | Macro Precision | Macro Recall |
+| --- | --- | --- | --- | --- |
+| ResNeXt50-32x4d | 0.94 | 0.93 | 0.94 | 0.91 |
+| Xception | 0.95 | 0.94 | 0.95 | 0.93 |
+| **EfficientNet-b0** | **0.95** | **0.94** | **0.93** | **0.95** |
+
+### Multi-Class Classification
+
+| Model | Accuracy | Macro F1 | Macro Precision | Macro Recall |
+| --- | --- | --- | --- | --- |
+| ResNeXt50-32x4d | 0.93 | 0.80 | 0.80 | 0.81 |
+| Xception | 0.93 | 0.80 | 0.80 | 0.80 |
+| **EfficientNet-b0** | **0.94** | **0.81** | **0.82** | **0.81** |
+
+### Explanation Preference Evaluation
+
+We compare binary-only explanations, binary + method explanations, and binary + method + ROI explanations on correctly classified samples only (`N = 60`, 30 real and 30 fake videos).
 
 | Comparison A | Comparison B | Preferred Setting | LLM Judge | Overall | Fake | Real |
-| ------------ | ------------ | ----------------- | --------- | ------- | ---- | ---- |
+| --- | --- | --- | --- | --- | --- | --- |
 | Binary only | **Binary + Method** | B preferred | Llama3 | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
 | Binary only | **Binary + Method** | B preferred | GPT-4o | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
 | Binary + Method | **Binary + Method + ROI** | B preferred | Llama3 | 45/60 (75%) | 27/30 (90%) | 18/30 (60%) |
@@ -100,100 +142,35 @@ We additionally evaluated whether richer explanation settings are preferred by L
 | Binary only | **Binary + Method + ROI** | B preferred | Llama3 | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
 | Binary only | **Binary + Method + ROI** | B preferred | GPT-4o | 60/60 (100%) | 30/30 (100%) | 30/30 (100%) |
 
-The corresponding notebook is available at `model/explanation_pairwise_test.ipynb`.
-  
-  
+## Explainability Output
 
-## 6. Explainability Pipeline
-
-- Grad-CAM visualization (using the last convolutional layer)
-- ROI-based scoring (region separation based on Face Alignment)
-- LLM-based explanation using Ollama to generate textual justifications for manipulated regions
-
-
-
-## 7. Explanation Evaluation
-
-- `Grad_CAM_and_ROI.ipynb`: Generates Grad-CAM videos, ROI activation scores, and visual explanation outputs.
-- `explanation_pairwise_test.ipynb`: Runs pairwise preference tests for explanation settings using LLM-based judgment.
-
-## 8. Preprocessing Tools
-
-- `validate_video.py`: Removes corrupted or too-short videos
-- `cut_frame.py`: Extracts the first 150 frames and saves them as MJPEG
-- `make_meta_data.py`: Automatically generates labels and metadata
-- `Grad_CAM_and_ROI.ipynb`: Generates CAM visualizations and ROI-based visual/textual explanations
-
-## 9. Running the Application
-
-Before running inference, download the trained model and place the checkpoint at:
+The explanation pipeline combines visual, regional, and textual evidence.
 
 ```text
-backend/detection/detector/checkpoint_v35.pt
+Prediction
+  -> Grad-CAM heatmap
+  -> facial ROI activation scores
+  -> structured ROI summary
+  -> LLM-generated explanation
 ```
 
-The Django settings file is local-only and is not tracked in Git. Before running the backend, make sure `backend/config/settings.py` exists locally and includes the `detection`, `corsheaders`, and `rest_framework` apps, `MEDIA_URL`, `MEDIA_ROOT`, and CORS access for `http://localhost:3000`.
+### Grad-CAM + ROI
 
-Run the backend server:
+<p align="left">
+  <img width="80%" height="80%" alt="XAI and ROI activation example" src="https://github.com/user-attachments/assets/edd9c9b5-e3a1-45b5-925f-ffe29d8f76ca" />
+</p>
 
-```bash
-cd backend
-python manage.py runserver
-```
+### LLM Explanation
 
-Run the frontend development server in a separate terminal:
+<p align="left">
+  <img width="80%" height="80%" alt="LLM explanation example" src="https://github.com/user-attachments/assets/6a77534f-236b-4864-8b93-6742ddb7fd39" />
+</p>
 
-```bash
-cd frontend
-npm install
-npm start
-```
+## Research Supervision
 
-The frontend runs at `http://localhost:3000`, and the backend API runs at `http://localhost:8000`.
+- **Prof. Mohsen Ali Alawami:** research supervision, methodology refinement, project extension guidance, and paper writing/revisions
 
-## 10. Logging
-
-The backend uses structured console logging for the main processing steps:
-
-- preview video conversion
-- upload analysis start and completion
-- preprocessing completion
-- inference result
-- Grad-CAM completion
-- LLM explanation completion or failure
-
-Logs are printed in this format:
-
-```text
-[INFO] 16:12:37 detection.services.pipeline - Analysis started: sample.mp4
-```
-
-The default log level is `INFO`. To see detailed debug logs, run the backend with:
-
-```bash
-DEFAKE_LOG_LEVEL=DEBUG python manage.py runserver
-```
-
-## 11. Optional Performance Benchmark
-
-Runtime logging is disabled in the default web API flow. To measure processing time for a local video, run:
-
-```bash
-cd backend
-python manage.py benchmark_detection /path/to/video.mp4
-```
-
-Use `--skip-llm` to benchmark only preprocessing, inference, and Grad-CAM:
-
-```bash
-python manage.py benchmark_detection /path/to/video.mp4 --skip-llm
-```
-
-Benchmark logs are written to `backend/logs/performance.csv` and `backend/logs/performance.md`.
-
-The benchmark command is implemented as a Django custom management command under `backend/detection/management/commands/`. The `management` directory is Django's standard location for app-specific CLI commands that can be run with `python manage.py <command>`.
-
-## 12. Contributors
+## Contributors
 
 <table>
   <tr>
@@ -254,11 +231,8 @@ The benchmark command is implemented as a Django custom management command under
   </tr>
 </table>
 
-## 13. Research Supervision
 
-- **Prof. Mohsen Ali Alawami:** Research supervision, methodology refinement, project extension guidance, and paper writing/revisions
-
-## 14. Contact
+## Contact
 
 - Prof. Mohsen Ali Alawami: mohsencomm@hufs.ac.kr
 - Jiyeong Park: wldud8297@gmail.com

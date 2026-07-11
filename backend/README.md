@@ -130,5 +130,5 @@ Useful environment variables:
 - `DEFAKE_LLM_URL`: Ollama generate API URL, default `http://localhost:11434/api/generate`
 - `DEFAKE_LLM_MODEL`: Ollama model name, default `llama3`
 - `DEFAKE_LLM_TIMEOUT_SEC`: LLM request timeout, default `60`
-- `DEFAKE_FRAME_SAMPLE_STRIDE`: frame sampling stride, default `5`
+- `DEFAKE_FRAME_SAMPLE_STRIDE`: frame sampling stride, default `5`, used to reduce deployment inference time
 - `DEFAKE_INFERENCE_BATCH_SIZE`: inference batch size, default `16`

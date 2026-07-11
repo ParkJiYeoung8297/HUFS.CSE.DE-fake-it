@@ -2,9 +2,8 @@ import glob
 import os
 from pathlib import Path
 
-import cv2
 import pandas as pd
-
+# import cv2
 
 # =========================
 # User configuration
@@ -70,9 +69,14 @@ def collect_metadata(input_glob, base_dir):
     rows = []
     for video_file in sorted(glob.glob(input_glob, recursive=True)):
         video_path = Path(video_file)
-        cap = cv2.VideoCapture(str(video_path))
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        cap.release()
+
+        # Frame counting is intentionally disabled because opening every video
+        # makes metadata generation unnecessarily slow. Keep the column empty
+        # for compatibility with existing Excel metadata files.
+        # cap = cv2.VideoCapture(str(video_path))
+        # frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        # cap.release()
+        frame_count = None
 
         relative_path = os.path.relpath(video_path, base_dir).replace("\\", "/")
         rows.append(

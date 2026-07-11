@@ -24,7 +24,6 @@ Grad-CAM generation are GPU-heavy.
 | Backbone | EfficientNet-b0 |
 | Temporal module | LSTM |
 | Input size | 224 x 224 |
-| Input sequence length | 10 frames |
 | Binary labels | `FAKE = 0`, `REAL = 1` |
 | Method classes | `original`, `Deepfakes`, `FaceShifter`, `FaceSwap`, `NeuralTextures`, `Face2Face`, `others` |
 | Checkpoint | `checkpoint_v35_best.pt` |
