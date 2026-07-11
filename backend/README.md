@@ -10,7 +10,7 @@ video upload
 -> EfficientNet-b0 + LSTM inference
 -> Grad-CAM generation
 -> ROI activation scoring
--> optional LLM explanation
+-> LLM explanation
 -> JSON response
 ```
 
@@ -22,8 +22,6 @@ backend/
 ├── detection/
 │   ├── detector/            # Model, preprocessing, inference, Grad-CAM, ROI logic
 │   ├── services/            # Upload analysis pipeline and service wrappers
-│   ├── utils/               # Result and benchmark helpers
-│   ├── management/commands/ # Optional benchmark command
 │   ├── urls.py
 │   └── views.py
 ├── media/                   # Runtime upload/output directory
@@ -38,7 +36,7 @@ The trained model checkpoint is not tracked in Git. Before running inference, [d
 backend/detection/detector/checkpoint_v35.pt
 ```
 
-The backend currently uses `checkpoint_v35` with the `EfficientNet-b0` model configuration.
+The backend currently uses the `checkpoint_v35` weights with an **EfficientNet-b0 + LSTM** architecture.
 
 ## Local Settings
 
@@ -54,6 +52,22 @@ Make sure the local settings include:
 - `MEDIA_URL = "/media/"`
 - `MEDIA_ROOT = os.path.join(BASE_DIR, "media")`
 - CORS access for the frontend development server, usually `http://localhost:3000`
+
+
+## Ollama / LLM Requirement
+
+The backend uses a local Ollama server to generate textual explanations.
+
+Before running the full analysis pipeline, start Ollama and make sure the configured model is available:
+
+```bash
+ollama serve
+ollama pull llama3
+```
+By default, the backend sends LLM requests to:
+http://localhost:11434/api/generate
+If Ollama is not running, the backend does not fail the analysis. It returns the prediction, Grad-CAM videos, ROI table, and a fallback explanation message.
+
 
 ## Run
 
@@ -72,46 +86,29 @@ python manage.py runserver
 
 The backend runs at `http://localhost:8000`.
 
-## API Endpoints
+## Output Files
 
-### `POST /api/show-video/`
-
-Uploads a video and returns a converted preview video URL.
-
-Expected form field:
+Analysis outputs are stored under:
 
 ```text
-video
+backend/media/
+├── <uploaded_video>.mp4
+└── preprocessed_<video_name>/
+    ├── <preprocessed_video>.mp4
+    ├── roi_metadata.json
+    ├── converted_grad_cam_on_original.mp4
+    └── converted_output_box_on_original.mp4
 ```
 
-Main response fields:
+Generated outputs include:
 
-- `message`
-- `saved_video_name`
-- `video_url`
+- Uploaded source video
+- Preprocessed face-cropped video used for inference
+- ROI metadata for explainability
+- Grad-CAM visualization video
+- ROI bounding-box visualization video
 
-### `POST /api/upload/`
-
-Uploads a video and runs the full deepfake analysis pipeline.
-
-Expected form field:
-
-```text
-video
-```
-
-Main response fields:
-
-- `prediction`
-- `probability`
-- `grad_cam_video_url`
-- `output_box_video_url`
-- `explanations`
-- `table_data`
-- `result_file`
-- `result_log_file`
-
-If the local LLM server is not available, the backend returns a fallback explanation message instead of failing the whole analysis.
+Temporary intermediate files may be created during processing and removed automatically.
 
 ## Logging
 
@@ -135,25 +132,3 @@ Useful environment variables:
 - `DEFAKE_LLM_TIMEOUT_SEC`: LLM request timeout, default `60`
 - `DEFAKE_FRAME_SAMPLE_STRIDE`: frame sampling stride, default `5`
 - `DEFAKE_INFERENCE_BATCH_SIZE`: inference batch size, default `16`
-
-## Optional Benchmark
-
-Runtime performance measurement is separated from the web API. To benchmark a local video:
-
-```bash
-cd backend
-python manage.py benchmark_detection /path/to/video.mp4
-```
-
-To skip LLM explanation during benchmarking:
-
-```bash
-python manage.py benchmark_detection /path/to/video.mp4 --skip-llm
-```
-
-Benchmark outputs are written to:
-
-```text
-backend/logs/performance.csv
-backend/logs/performance.md
-```

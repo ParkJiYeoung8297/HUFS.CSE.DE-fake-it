@@ -8,7 +8,6 @@ from .inference import run_inference
 from .llm import run_llm
 from .preprocessing import run_preprocessing
 from .uploads import save_uploaded_file
-from ..utils.results import save_detection_result
 
 
 logger = logging.getLogger(__name__)
@@ -56,12 +55,5 @@ def analyze_uploaded_video(uploaded_file):
         "explanations": response_txt,
         "table_data": table_data,
     }
-    result_json_path, result_jsonl_path = save_detection_result(
-        response_data,
-        output_path,
-    )
-    response_data["result_file"] = result_json_path
-    response_data["result_log_file"] = result_jsonl_path
-
     logger.info("Analysis completed: %s", uploaded_file.name)
     return response_data
