@@ -1,17 +1,16 @@
 import cv2
+import face_alignment
 import logging
 import torch
 import torchvision.transforms as T
 import numpy as np
 import torch.nn.functional as F
 import os
-import json
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .model import Model
-from .preprocessing import ROI_METADATA_FILENAME
 
 
 logger = logging.getLogger(__name__)
@@ -149,47 +148,10 @@ def _compute_gradcam_for_rgb(model, transform, rgb):
     return compute_gradcam_binary(model, img)
 
 
-def _load_roi_metadata(video_dir):
-    metadata_path = os.path.join(video_dir, ROI_METADATA_FILENAME)
-    if not os.path.exists(metadata_path):
-        logger.warning("ROI metadata not found: %s", metadata_path)
-        return []
-
-    with open(metadata_path, "r", encoding="utf-8") as metadata_file:
-        metadata = json.load(metadata_file)
-
-    return metadata.get("frames", [])
-
-
-def _default_roi_bboxes(width, height):
-    return {
-        "Jawline": [0, int(height * 0.58), width, height],
-        "Left Eye": [int(width * 0.22), int(height * 0.30), int(width * 0.45), int(height * 0.42)],
-        "Right Eye": [int(width * 0.55), int(height * 0.30), int(width * 0.78), int(height * 0.42)],
-        "Left Eyebrow": [int(width * 0.20), int(height * 0.21), int(width * 0.45), int(height * 0.31)],
-        "Right Eyebrow": [int(width * 0.55), int(height * 0.21), int(width * 0.80), int(height * 0.31)],
-        "Nose": [int(width * 0.42), int(height * 0.40), int(width * 0.58), int(height * 0.63)],
-        "Mouth": [int(width * 0.32), int(height * 0.66), int(width * 0.68), int(height * 0.80)],
-    }
-
-
-def _normalize_bbox_map(raw_bbox_map, width, height):
-    if not raw_bbox_map:
-        return _default_roi_bboxes(width, height)
-
-    bbox_map = {}
-    for region, bbox in raw_bbox_map.items():
-        x1, y1, x2, y2 = [int(round(value)) for value in bbox]
-        x1 = max(0, min(width - 1, x1))
-        y1 = max(0, min(height - 1, y1))
-        x2 = max(x1 + 1, min(width, x2))
-        y2 = max(y1 + 1, min(height, y2))
-        bbox_map[region] = (x1, y1, x2, y2)
-
-    for region, bbox in _default_roi_bboxes(width, height).items():
-        bbox_map.setdefault(region, bbox)
-
-    return bbox_map
+def get_bbox(points):
+    x = points[:, 0]
+    y = points[:, 1]
+    return int(x.min()), int(y.min()), int(x.max()), int(y.max())
 
 
 def _write_processed_frame(
@@ -202,13 +164,9 @@ def _write_processed_frame(
     video_writer_cam,
 ):
     frame = pending_item["frame"]
+    bbox_map = pending_item["bbox_map"]
     cam, cam_score, binary_pred, method_pred = pending_item["gradcam_future"].result()
     cam = cv2.resize(cam, (frame.shape[1], frame.shape[0]))
-    bbox_map = _normalize_bbox_map(
-        pending_item.get("roi_bboxes"),
-        frame.shape[1],
-        frame.shape[0],
-    )
 
     scores = {region: roi_activation(cam, box) for region, box in bbox_map.items()}
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
@@ -247,7 +205,10 @@ def _write_processed_frame(
 
 def calculate_roi_scores(video_dir, file_name, result, model):
     os.makedirs(video_dir, exist_ok=True)
-    roi_metadata_frames = _load_roi_metadata(video_dir)
+    face_aligner = face_alignment.FaceAlignment(
+        face_alignment.LandmarksType.TWO_D,
+        device=str(device),
+    )
 
     transform = T.Compose([
         T.ToTensor(),
@@ -291,14 +252,24 @@ def calculate_roi_scores(video_dir, file_name, result, model):
                 break
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            metadata_item = (
-                roi_metadata_frames[frame_idx]
-                if frame_idx < len(roi_metadata_frames)
-                else {}
-            )
+            landmarks = face_aligner.get_landmarks(rgb)
+            if not landmarks:
+                frame_idx += 1
+                continue
+
+            lm = landmarks[0]
+            bbox_map = {
+                'Jawline': get_bbox(lm[0:17]),
+                'Left Eye': get_bbox(lm[36:42]),
+                'Right Eye': get_bbox(lm[42:48]),
+                'Left Eyebrow': get_bbox(lm[17:22]),
+                'Right Eyebrow': get_bbox(lm[22:27]),
+                'Nose': get_bbox(lm[27:36]),
+                'Mouth': get_bbox(lm[48:68]),
+            }
             pending.append({
                 "frame": frame.copy(),
-                "roi_bboxes": metadata_item.get("roi_bboxes"),
+                "bbox_map": bbox_map,
                 "gradcam_future": gradcam_executor.submit(
                     _compute_gradcam_for_rgb,
                     model,
@@ -384,7 +355,7 @@ def run_gradcam_roi_analysis(
     video_path,
     file_name,
     result,
-    checkpoint_name='checkpoint_v35',
+    checkpoint_name='checkpoint_v35_best',
     selected_model='EfficientNet-b0',
     model=None,
     convert_videos=True,

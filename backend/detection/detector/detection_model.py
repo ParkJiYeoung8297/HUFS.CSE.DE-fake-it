@@ -66,7 +66,7 @@ def _predict_batch(input_tensors, model, device):
 
     return frame_probs, frame_preds, method_preds, frame_scores
 
-def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint_name='checkpoint_v35'):
+def run_detection_model(video_path, selected_model='EfficientNet-b0', checkpoint_name='checkpoint_v35_best'):
 
     device = _get_device()
     model = _load_model(selected_model, checkpoint_name, device)

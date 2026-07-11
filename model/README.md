@@ -45,7 +45,7 @@ Place the downloaded file at:
 If you also want to run the web demo, copy the checkpoint to:
 
 ```text
-backend/detection/detector/checkpoint_v35.pt
+backend/detection/detector/checkpoint_v35_best.pt
 ```
 
 ---

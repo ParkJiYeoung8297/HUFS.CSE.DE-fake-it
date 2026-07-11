@@ -1,7 +1,6 @@
 import logging
 import os
 import cv2
-import json
 import torch
 from facenet_pytorch import MTCNN
 
@@ -9,7 +8,6 @@ from facenet_pytorch import MTCNN
 logger = logging.getLogger(__name__)
 
 CPU_THREAD_LIMIT = int(os.environ.get("DEFAKE_CPU_THREADS", "4"))
-ROI_METADATA_FILENAME = "roi_metadata.json"
 FRAME_SAMPLE_STRIDE = max(1, int(os.environ.get("DEFAKE_FRAME_SAMPLE_STRIDE", "5")))
 
 torch.set_num_threads(CPU_THREAD_LIMIT)
@@ -29,75 +27,9 @@ def frame_extract(path):
     cap.release()
 
 
-def _clamp(value, min_value, max_value):
-    return max(min_value, min(max_value, value))
-
-
-def _box_from_center(center_x, center_y, half_width, half_height, image_size=224):
-    x1 = int(round(center_x - half_width))
-    y1 = int(round(center_y - half_height))
-    x2 = int(round(center_x + half_width))
-    y2 = int(round(center_y + half_height))
-    return [
-        _clamp(x1, 0, image_size - 1),
-        _clamp(y1, 0, image_size - 1),
-        _clamp(x2, 1, image_size),
-        _clamp(y2, 1, image_size),
-    ]
-
-
-def _default_roi_bboxes(output_size=224):
-    return {
-        "Jawline": [0, int(output_size * 0.58), output_size, output_size],
-        "Left Eye": [int(output_size * 0.22), int(output_size * 0.30), int(output_size * 0.45), int(output_size * 0.42)],
-        "Right Eye": [int(output_size * 0.55), int(output_size * 0.30), int(output_size * 0.78), int(output_size * 0.42)],
-        "Left Eyebrow": [int(output_size * 0.20), int(output_size * 0.21), int(output_size * 0.45), int(output_size * 0.31)],
-        "Right Eyebrow": [int(output_size * 0.55), int(output_size * 0.21), int(output_size * 0.80), int(output_size * 0.31)],
-        "Nose": [int(output_size * 0.42), int(output_size * 0.40), int(output_size * 0.58), int(output_size * 0.63)],
-        "Mouth": [int(output_size * 0.32), int(output_size * 0.66), int(output_size * 0.68), int(output_size * 0.80)],
-    }
-
-
-def _build_roi_bboxes_from_mtcnn(face_box, landmarks, output_size=224):
-    x1, y1, x2, y2 = [float(v) for v in face_box]
-    face_w = max(x2 - x1, 1.0)
-    face_h = max(y2 - y1, 1.0)
-
-    def scale_point(point):
-        px, py = point
-        return (
-            _clamp((float(px) - x1) / face_w * output_size, 0, output_size),
-            _clamp((float(py) - y1) / face_h * output_size, 0, output_size),
-        )
-
-    left_eye, right_eye, nose, mouth_left, mouth_right = [
-        scale_point(point) for point in landmarks
-    ]
-
-    eye_distance = max(abs(right_eye[0] - left_eye[0]), output_size * 0.18)
-    eye_half_w = eye_distance * 0.22
-    eye_half_h = output_size * 0.045
-    eyebrow_offset = output_size * 0.075
-
-    mouth_center_x = (mouth_left[0] + mouth_right[0]) / 2
-    mouth_center_y = (mouth_left[1] + mouth_right[1]) / 2
-    mouth_half_w = max(abs(mouth_right[0] - mouth_left[0]) * 0.75, output_size * 0.11)
-
-    return {
-        "Jawline": [0, int(output_size * 0.58), output_size, output_size],
-        "Left Eye": _box_from_center(left_eye[0], left_eye[1], eye_half_w, eye_half_h, output_size),
-        "Right Eye": _box_from_center(right_eye[0], right_eye[1], eye_half_w, eye_half_h, output_size),
-        "Left Eyebrow": _box_from_center(left_eye[0], left_eye[1] - eyebrow_offset, eye_half_w * 1.1, eye_half_h, output_size),
-        "Right Eyebrow": _box_from_center(right_eye[0], right_eye[1] - eyebrow_offset, eye_half_w * 1.1, eye_half_h, output_size),
-        "Nose": _box_from_center(nose[0], nose[1], output_size * 0.07, output_size * 0.10, output_size),
-        "Mouth": _box_from_center(mouth_center_x, mouth_center_y, mouth_half_w, output_size * 0.07, output_size),
-    }
-
-
 def process_single_video(video_path, output_path, filename):
     os.makedirs(output_path, exist_ok=True)
     output_video_path = os.path.join(output_path, filename)
-    metadata_path = os.path.join(output_path, ROI_METADATA_FILENAME)
 
     device = torch.device("mps") if torch.backends.mps.is_available() else (
         torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -110,16 +42,7 @@ def process_single_video(video_path, output_path, filename):
 
     # 저장용 비디오 객체 (224x224 크기)
     out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'MJPG'), output_fps, (224,224))
-    metadata = {
-        "source_video": os.path.basename(video_path),
-        "preprocessed_video": filename,
-        "output_size": [224, 224],
-        "frame_sample_stride": FRAME_SAMPLE_STRIDE,
-        "output_fps": output_fps,
-        "frames": [],
-    }
     source_frame_idx = 0
-    written_frame_idx = 0
 
     for frame in frame_extract(video_path):
         try:
@@ -127,7 +50,7 @@ def process_single_video(video_path, output_path, filename):
                 continue
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            boxes, _, landmarks = mtcnn.detect(rgb, landmarks=True)
+            boxes, _ = mtcnn.detect(rgb)
 
             if boxes is not None:
                 x1, y1, x2, y2 = map(int, boxes[0])  # 첫 번째 얼굴만 사용
@@ -141,20 +64,6 @@ def process_single_video(video_path, output_path, filename):
                 if face.size != 0:
                     resized = cv2.resize(face, (224,224))
                     out.write(resized)
-
-                    roi_bboxes = (
-                        _build_roi_bboxes_from_mtcnn([x1, y1, x2, y2], landmarks[0])
-                        if landmarks is not None
-                        else _default_roi_bboxes()
-                    )
-                    metadata["frames"].append({
-                        "source_frame_idx": source_frame_idx,
-                        "preprocessed_frame_idx": written_frame_idx,
-                        "face_bbox": [x1, y1, x2, y2],
-                        "roi_bboxes": roi_bboxes,
-                    })
-
-                    written_frame_idx += 1
         except Exception as exc:
             logger.warning("Error processing frame %s: %s", source_frame_idx, exc)
             continue
@@ -162,9 +71,6 @@ def process_single_video(video_path, output_path, filename):
             source_frame_idx += 1
 
     out.release()
-    with open(metadata_path, "w", encoding="utf-8") as metadata_file:
-        json.dump(metadata, metadata_file, ensure_ascii=False)
 
     logger.debug("Saved preprocessed video: %s", output_video_path)
-    logger.debug("Saved ROI metadata: %s", metadata_path)
     return output_video_path

@@ -33,10 +33,10 @@ backend/
 The trained model checkpoint is not tracked in Git. Before running inference, [download the trained model](https://drive.google.com/file/d/12VNleCHv1PB7SUnh0H0QBmObUClwUQy3/view) and place it at: 
 
 ```text
-backend/detection/detector/checkpoint_v35.pt
+backend/detection/detector/checkpoint_v35_best.pt
 ```
 
-The backend currently uses the `checkpoint_v35` weights with an **EfficientNet-b0 + LSTM** architecture.
+The backend currently uses the `checkpoint_v35_best` weights with an **EfficientNet-b0 + LSTM** architecture.
 
 ## Local Settings
 
@@ -95,7 +95,6 @@ backend/media/
 ├── <uploaded_video>.mp4
 └── preprocessed_<video_name>/
     ├── <preprocessed_video>.mp4
-    ├── roi_metadata.json
     ├── converted_grad_cam_on_original.mp4
     └── converted_output_box_on_original.mp4
 ```
@@ -104,9 +103,10 @@ Generated outputs include:
 
 - Uploaded source video
 - Preprocessed face-cropped video used for inference
-- ROI metadata for explainability
 - Grad-CAM visualization video
 - ROI bounding-box visualization video
+
+ROI bounding boxes are computed during Grad-CAM generation using 68-point face alignment landmarks.
 
 Temporary intermediate files may be created during processing and removed automatically.
 
