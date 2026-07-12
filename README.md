@@ -7,7 +7,12 @@
 
 We release the code for **Seeing Through Deepfakes**, an explainable deepfake detection framework that connects video classification, visual evidence, facial-region analysis, and natural-language explanation generation.
 
+<!-- <img width="2172" height="724" alt="image" src="https://github.com/user-attachments/assets/b5977db7-10bc-4e11-a7c9-198fd4e27dc6" /> -->
+
+<img width="2172" height="724" alt="image" src="https://github.com/user-attachments/assets/b6ff25b0-d45e-4d9e-9dc5-84c00ef0b000" />
+
 The project is designed around one question: how can a deepfake detector make its decision easier to inspect? Instead of only returning a real/fake label, the pipeline also produces Grad-CAM visualizations, facial ROI activation scores, and an LLM-generated explanation grounded in the model outputs.
+
 
 ```text
 Video input
