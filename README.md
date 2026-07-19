@@ -63,7 +63,8 @@ Each component has its own guide. The root README keeps only the project-level o
 The figure below summarizes the complete inference and explainability pipeline used in the deployed system.
 
 <p align="center">
-  <img width="100%" height="100%" alt="System architecture" src="https://github.com/user-attachments/assets/86e4cdc1-e87e-4e19-9eea-5dde0558ca60" />
+  <img width="1219" height="740" alt="image" src="https://github.com/user-attachments/assets/c842f360-d9bd-4bab-be2c-8691b7f2861e" />
+
 </p>
 
 ## Demo
